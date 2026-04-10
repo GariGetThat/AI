@@ -1,0 +1,17 @@
+[
+    {
+        "id": "face_001",
+        "type": "face",
+        "start_frame": 0,
+        "end_frame": 750,
+        "box": [100, 200, 300, 600]
+    },
+    {
+        "id": "object_001",
+        "type": "object",
+        "label": "번호판",
+        "start_frame": 0,
+        "end_frame": 600,
+        "box": [500, 300, 620, 340]
+    }
+]
