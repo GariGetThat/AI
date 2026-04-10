@@ -40,21 +40,35 @@ class SAM2VideoPredictor(SAM2Base):
 
     @torch.inference_mode()
     def init_state(
+        # 우리 프로젝트에 맞게 코드 수정함 
         self,
-        video_path,
+        video_path = None,
+        frames=None, 
+        video_height=None,
+        video_width=None,
         offload_video_to_cpu=False,
         offload_state_to_cpu=False,
         async_loading_frames=False,
     ):
         """Initialize an inference state."""
         compute_device = self.device  # device of the model
-        images, video_height, video_width = load_video_frames(
-            video_path=video_path,
-            image_size=self.image_size,
-            offload_video_to_cpu=offload_video_to_cpu,
-            async_loading_frames=async_loading_frames,
-            compute_device=compute_device,
-        )
+
+        if frames is not None:
+            # 청크 프레임 직접 받기
+            images = frames
+            assert video_height is not None and video_width is not None, \
+            "frames 사용시 video_height, video_width 필수"
+
+        else :
+            # 기존 방식 유지
+            images, video_height, video_width = load_video_frames(
+                video_path=video_path,
+                image_size=self.image_size,
+                offload_video_to_cpu=offload_video_to_cpu,
+                async_loading_frames=async_loading_frames,
+                compute_device=compute_device,
+            )
+            
         inference_state = {}
         inference_state["images"] = images
         inference_state["num_frames"] = len(images)
