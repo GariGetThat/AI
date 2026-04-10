@@ -13,8 +13,8 @@ with open(args.targets, "r") as f:
     targets = json.load(f)
 
 processor = ChunkProcessor(
-    model_cfg="configs/sam2.1/sam2.1_hiera_l.yaml",
-    checkpoint="checkpoints/sam2.1_hiera_large.pt",
+    model_cfg="configs/sam2.1/sam2.1_hiera_s.yaml", # 모델 구조 설정 파일
+    checkpoint="checkpoints/sam2.1_hiera_small.pt", # 학습된 가중치 파일 
 )
 
 results = processor.process("video.mp4", targets)
