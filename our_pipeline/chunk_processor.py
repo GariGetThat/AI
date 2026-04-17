@@ -6,7 +6,7 @@ from sam2.build_sam import build_sam2_video_predictor
 class ChunkProcessor:
     def __init__(self, model_cfg, checkpoint, fps=25, chunk_seconds = 15):
         # build_sam2_video_predictor 가져다가 사용하기
-        self.predictor = build_sam2_video_predictor(model_cfg, checkpoint)
+        self.predictor = build_sam2_video_predictor(model_cfg, checkpoint, device="cpu")
         self.fps = fps
         self.chunk_size = fps * chunk_seconds # 375 프레임
 
@@ -67,12 +67,14 @@ class ChunkProcessor:
         return [int(x1), int(y1), int(x2), int(y2)]
     
     def process(self, video_path, targets):
+        print("process 시작!")
         # video_path : 영상 파일 경로
         # targets = [{"id", "type", "start_frame", "end_frame", "box"}, ...]
         
         # 영상 전체 프레임 수, 해상도 파악
         cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        print(f"총 프레임 수: {total_frames}")
         video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         cap.release()
@@ -91,8 +93,9 @@ class ChunkProcessor:
             frames = self._load_chunk_frames(video_path, chunk_start, chunk_end)
             if len(frames) ==0 :
                 break
-                
-            with torch.inference_mode(), torch.autocast("cuda", dtype = torch.bfloat16):
+
+            # with torch.inference_mode(), torch.autocast("cuda", dtype = torch.bfloat16) 
+            with torch.inference_mode():
                 # init_state에 프레임 배열 직접 전달
                 state = self.predictor.init_state(
                     frames = frames,
@@ -144,7 +147,7 @@ class ChunkProcessor:
                         if abs_frame > target["end_frame"]:
                             continue
                          
-                        box = self._mask_to_box(mask)
+                        box = self.mask_to_box(mask)
                         if box is not None:
                             last_boxes[obj_id] = box
 

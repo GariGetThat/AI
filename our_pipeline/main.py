@@ -17,7 +17,7 @@ processor = ChunkProcessor(
     checkpoint="checkpoints/sam2.1_hiera_small.pt", # 학습된 가중치 파일 
 )
 
-results = processor.process("video.mp4", targets)
+results = processor.process("test_video.avi", targets)
 
 np.save("results.npy", results)
 
