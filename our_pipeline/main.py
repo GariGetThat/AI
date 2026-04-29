@@ -2,6 +2,7 @@ from our_pipeline.chunk_processor import ChunkProcessor
 import numpy as np
 import argparse
 import json
+from our_pipeline.blur_processor import BlurProcessor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--video", type=str, required=True, help="영상 파일 경로")
@@ -17,11 +18,9 @@ processor = ChunkProcessor(
     checkpoint="checkpoints/sam2.1_hiera_small.pt", # 학습된 가중치 파일 
 )
 
-results = processor.process("test_video.avi", targets)
+results = processor.process(args.video, targets)
 
 np.save("results.npy", results)
 
-# 실행 시 
-# python our_pipeline/main.py --video video.mp4 --targets our_pipeline/targets.json
-
-# results 전달 받은 후 어떻게 처리할지는 아직 코드 작성 x(OpenCV 연결하는 부분)
+blur = BlurProcessor(blur_strength=51)
+blur.process(args.video, results, output_path="output_video.avi")

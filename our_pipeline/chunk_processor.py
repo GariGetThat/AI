@@ -112,7 +112,7 @@ class ChunkProcessor:
                     if target["end_frame"] < chunk_start:
                         continue
                     # 아직 start_frame 안 된 객체 스킵
-                    if target["start_frame"] > chunk_start:
+                    if target["start_frame"] > chunk_end:
                         continue
                     # 저장된 box가 없으면 스킵
                     if obj_id not in active_boxes:
