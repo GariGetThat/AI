@@ -14,15 +14,15 @@ class BlurProcessor:
         cap = cv2.VideoCapture(video_path)
         total_frames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        video_width = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = cap.get(cv2.CAP_PROPS_FPS)
+        video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        fps = cap.get(cv2.CAP_PROP_FPS)
 
         # 출력 영상 설정
         out = cv2.VideoWriter(
             output_path,
             cv2.VideoWriter_fourcc(*"XVID"),
             fps,
-            (video_width, video_height)
+            (int(video_width), int(video_height))  # int로 명시적 변환
         )
 
         frame_idx = 0
