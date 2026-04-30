@@ -34,12 +34,18 @@ class BlurProcessor:
             # 이 프레임에 마스크가 있으면 블러 처리
             if frame_idx in results:
                 for obj_id, mask in results[frame_idx].items():
-                    # binary mask 변환 (True/False)
-                    binary_mask = mask[0] > 0  # (H, W)
+                    # binary mask 변환
+                    binary_mask = (mask[0] < 0).astype(np.uint8)  # 0 or 1
 
                     # 블러 처리
                     blurred = cv2.GaussianBlur(frame, (self.blur_strength, self.blur_strength), 0)
-                    frame[binary_mask] = blurred[binary_mask]
+                    
+                    # mask를 3채널로 확장
+                    binary_mask_3ch = np.stack([binary_mask, binary_mask, binary_mask], axis=-1)
+                    
+                    # 블러 적용
+                    frame = np.where(binary_mask_3ch == 1, blurred, frame)
+                    frame = frame.astype(np.uint8) 
 
             out.write(frame)
             frame_idx += 1
