@@ -257,18 +257,22 @@ class PrivacyReasoningEngine:
         visible_text: str,
     ) -> str:
         return (
-            "You are deciding whether a text group and its surrounding object should be privacy-blurred.\n"
-            f"User request: {user_prompt}\n"
-            f"Visible text from the grouped region:\n{visible_text}\n"
-            "Decide based on the visible text and obvious visible context only.\n"
-            "If this grouped region likely belongs to a privacy-sensitive object such as a receipt, address label, card, ID document, license plate, or other personal text-bearing object, answer yes.\n"
-            "Short noisy fragments such as a single digit or random short token alone are not enough unless the overall grouped region strongly suggests a sensitive object.\n"
-            "If any part of the grouped region likely contains privacy-sensitive information, treat the whole grouped object as blur-worthy.\n"
-            "Return exactly three lines:\n"
-            "Decision: yes or no\n"
-            "Label: receipt | credit card | driver's license | license plate | address document | other private text | other\n"
-            "Reason: <short reason>"
-        )
+        "You are deciding whether a text group and its surrounding object should be privacy-blurred.\n"
+        f"User request: {user_prompt}\n"
+        f"Visible text from the grouped region:\n{visible_text}\n"
+        "Decide based on the visible text and obvious visible context only.\n"
+        "If this grouped region likely belongs to a privacy-sensitive object such as a receipt, waybill(delivery label with name/address/phone number), address label, card, ID document, license plate, or other personal text-bearing object, answer yes. Road signs, subtitles, and brand logos are NOT privacy-sensitive.\n"
+        "Short noisy fragments such as a single digit or random short token alone are not enough unless the overall grouped region strongly suggests a sensitive object.\n"
+        "If any part of the grouped region likely contains privacy-sensitive information, treat the whole grouped object as blur-worthy.\n"
+        "You MUST return exactly three lines in this order, do NOT skip or merge any line:\n"
+        "Decision: yes or no\n"
+        "Label: receipt | waybill | credit card | driver's license | license plate | road sign | address document | other private text | other\n"
+        "Reason: <one short sentence>\n"
+        "Example output:\n"
+        "Decision: yes\n"
+        "Label: waybill\n"
+        "Reason: Contains name, address and phone number typical of a delivery label.\n"
+    )
 
     # -------------------------------------------------------------------------
     # Qwen helpers
