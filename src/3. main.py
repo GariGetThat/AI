@@ -1212,24 +1212,20 @@ class PrivacyReasoningEngine:
 
     @staticmethod
     def draw_bbox(frame_bgr: np.ndarray, x1: int, y1: int, x2: int, y2: int, label: str) -> None:
-        x1 = int(x1)
-        y1 = int(y1)
-        x2 = int(x2)
-        y2 = int(y2)
-
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
         cv2.rectangle(frame_bgr, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-        text_y = max(25, y1 - 10)
-        cv2.putText(
-            frame_bgr,
-            label,
-            (x1, text_y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.65,
-            (0, 255, 0),
-            2,
-            cv2.LINE_AA,
-        )
+        
+        # PIL로 한글 텍스트 그리기
+        from PIL import ImageFont, ImageDraw, Image
+        img_pil = Image.fromarray(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(img_pil)
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/nanum/NanumGothic.ttf", 20)
+        except:
+            font = ImageFont.load_default()
+        text_y = max(5, y1 - 25)
+        draw.text((x1, text_y), label, font=font, fill=(0, 255, 0))
+        frame_bgr[:] = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
 
     # -------------------------------------------------------------------------
     # Utilities
