@@ -275,7 +275,7 @@ class PrivacyReasoningEngine:
             "Return exactly these four lines:\n"
             "Decision: yes or no\n"
             "VisibleText: <copied visible text or NONE>\n"
-            "Label: receipt | credit card | driver's license | license plate | address document | other private text | other\n"
+            "Label: receipt | waybill | credit card | driver's license | license plate | road sign | address document | other private text | other\n"
             "Reason: <short reason>"
         )
 
