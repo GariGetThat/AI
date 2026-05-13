@@ -1371,8 +1371,10 @@ if __name__ == "__main__":
 
         video_path = Path(args.video).expanduser().resolve()
         debug_crop_dir = project_root / "debug_crops"
-        debug_video_fullfps_path = project_root / "debug_bbox_output_fullfps.mp4"
-        debug_video_sampled_path = project_root / "debug_bbox_output_sampled.mp4"
+        from datetime import datetime
+        _timestamp = datetime.now().strftime("%m%d_%H%M")
+        debug_video_fullfps_path = project_root / f"debug_bbox_output_fullfps_{_timestamp}.mp4"
+        debug_video_sampled_path = project_root / f"debug_bbox_output_sampled_{_timestamp}.mp4"
         json_output_path = project_root / "privacy_runtime_bar.json"
         user_prompt = args.prompt
         sample_fps = args.sample_fps
