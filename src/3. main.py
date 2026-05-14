@@ -918,7 +918,11 @@ class PrivacyReasoningEngine:
             return "license plate"
         if n in ("address document",):
             return "address document"
-        if n in ("other private text",):
+        if n in ("waybill", "delivery label", "shipping label", "invoice"):
+            return "waybill"
+        if n in ("road sign", "street sign", "traffic sign", "sign"):
+            return "road sign"
+        if n in ("other private text", "other private", "private text"):
             return "other private text"
         return "other"
 
@@ -957,8 +961,9 @@ class PrivacyReasoningEngine:
         for det_idx, det in enumerate(detections):
             for track_id in track_ids:
                 track = self.active_tracks[track_id]
-                if track.label != det.label:
-                    continue
+                # 라벨이 달라도 위치(IoU)가 겹치면 같은 객체로 인정
+                # if track.label != det.label:
+                #    continue
 
                 iou = self.compute_iou(track.last_box, det.box)
                 if iou >= self.track_iou_threshold:
