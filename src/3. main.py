@@ -1076,7 +1076,53 @@ class PrivacyReasoningEngine:
         tracks: Optional[List[TrackState]] = None,
     ) -> List[Dict]:
         if tracks is None:
-            tracks = self.last_tracks
+            tracks = list(self.last_tracks)  # 복사본으로
+        # 중복 제거 전 디버그
+        print(f"[Debug] 중복 제거 전 트랙 수: {len(tracks)}", flush=True)
+        # IoU 기반 중복 트랙 제거
+
+        # IoU 기반 중복 트랙 제거
+        def compute_iou_box(a, b):
+            ax1, ay1, ax2, ay2 = a
+            bx1, by1, bx2, by2 = b
+            ix1, iy1 = max(ax1, bx1), max(ay1, by1)
+            ix2, iy2 = min(ax2, bx2), min(ay2, by2)
+            inter = max(0, ix2-ix1) * max(0, iy2-iy1)
+            if inter == 0:
+                return 0.0
+            area_a = (ax2-ax1) * (ay2-ay1)
+            area_b = (bx2-bx1) * (by2-by1)
+            return inter / (area_a + area_b - inter)
+
+        merged_tracks = []
+        used = set()
+        for i, t1 in enumerate(tracks):
+            if i in used:
+                continue
+            box1 = t1.representative_box()
+            # 화면 너무 큰 박스 제거
+            bw = box1[2] - box1[0]
+            bh = box1[3] - box1[1]
+            if bw * bh > 300000:
+                used.add(i)
+                continue
+            best_start = t1.start_frame
+            best_end = t1.end_frame
+            for j, t2 in enumerate(tracks):
+                if i == j or j in used:
+                    continue
+                box2 = t2.representative_box()
+                if compute_iou_box(box1, box2) >= 0.5:
+                    best_start = min(best_start, t2.start_frame)
+                    best_end = max(best_end, t2.end_frame)
+                    used.add(j)
+            t1.start_frame = best_start
+            t1.end_frame = best_end
+            merged_tracks.append(t1)
+            used.add(i)
+        tracks = merged_tracks
+
+        print(f"[Debug] 중복 제거 후 트랙 수: {len(tracks)}", flush=True)
 
         payload: List[Dict] = []
         for track in tracks:
@@ -1099,6 +1145,7 @@ class PrivacyReasoningEngine:
             json.dump(payload, f, ensure_ascii=False, indent=2)
 
         self.last_json_payload = payload
+        
         print(f"[Export] JSON 저장 완료: {output_json_path}", flush=True)
         return payload
 
