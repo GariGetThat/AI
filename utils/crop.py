@@ -39,6 +39,46 @@ def crop_face(
 
     return frame[y1:y2, x1:x2].copy()
 
+def crop_face_by_kps(
+    frame: np.ndarray,
+    kps: list | None,
+    bbox: BBox | None = None,
+    padding: float = 0.6,
+    min_size: int = 40,
+) -> np.ndarray | None:
+    """
+    5-point keypoints 기준으로 얼굴 crop.
+    kps가 없으면 bbox crop으로 fallback.
+    """
+    if kps is None:
+        if bbox is None:
+            return None
+        return crop_face(frame, bbox, padding=0.2, min_size=min_size)
+
+    h, w = frame.shape[:2]
+    pts = np.array(kps, dtype=np.float32)
+
+    x1 = int(np.min(pts[:, 0]))
+    y1 = int(np.min(pts[:, 1]))
+    x2 = int(np.max(pts[:, 0]))
+    y2 = int(np.max(pts[:, 1]))
+
+    bw = x2 - x1
+    bh = y2 - y1
+
+    size = int(max(bw, bh) * (1.0 + padding))
+    cx = int((x1 + x2) / 2)
+    cy = int((y1 + y2) / 2)
+
+    nx1 = max(0, cx - size // 2)
+    ny1 = max(0, cy - size // 2)
+    nx2 = min(w, cx + size // 2)
+    ny2 = min(h, cy + size // 2)
+
+    if (nx2 - nx1) < min_size or (ny2 - ny1) < min_size:
+        return None
+
+    return frame[ny1:ny2, nx1:nx2].copy()
 
 def save_crop(crop: np.ndarray, save_path: str | Path, quality: int = 95) -> bool:
     """crop 이미지를 jpg로 저장. 성공 여부 반환."""

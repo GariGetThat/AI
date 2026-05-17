@@ -4,20 +4,25 @@
 opencv-python>=4.8.0
 
 # 수치 연산
-numpy==1.24.4 
-scipy==1.10.1 
-albumentations==1.3.1
+numpy==1.24.4
+scipy==1.10.1
 
-# 얼굴 검출 (SCRFD)
-insightface==0.7.3 
-onnxruntime==1.16.3         # CPU 사용 시 활성화
-# onnxruntime-gpu>=1.16.0  # GPU 사용 시 위 줄 주석 처리 후 이 줄 활성화
+# 얼굴 분석: detection + alignment + recognition embedding
+# InsightFace >=0.2부터 onnxruntime backend 사용
+insightface==0.7.3
 
-# 얼굴 추적 (ByteTrack)
-# bytetracker>=0.2.0       # 실제 연결 시 활성화
+# GPU 서버 사용 시
+onnxruntime-gpu==1.16.3
 
-# 클러스터링 (PASS2)
-# scikit-learn>=1.3.0
+# CPU만 사용할 경우에는 위 줄 대신 아래 사용
+# onnxruntime==1.16.3
 
-# 타입 힌트 백포트 (Python < 3.10)
-# typing_extensions>=4.0
+# 추적
+# ByteTrack 직접 연결 시 설치가 안 될 수도 있어서 우선 주석 유지 가능
+# bytetracker>=0.2.0
+
+# 클러스터링 / embedding 기반 track 병합용
+scikit-learn>=1.3.0
+
+# 기타
+tqdm>=4.66.0

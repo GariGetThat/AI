@@ -69,6 +69,73 @@ class SCRFDDetector(BaseFaceDetector):
             ))
         return records
 
+class BuffaloFaceDetector(BaseFaceDetector):
+    """
+    InsightFace FaceAnalysis buffalo_l 사용.
+    bbox + keypoint + embedding 추출.
+    """
+
+    def __init__(
+        self,
+        model_pack_name: str = "buffalo_l",
+        input_size: Tuple[int, int] = (640, 640),
+        conf_thresh: float = 0.5,
+        ctx_id: int = -1,
+    ):
+        try:
+            from insightface.app import FaceAnalysis
+        except ImportError as e:
+            raise ImportError(
+                "pip install insightface onnxruntime-gpu"
+            ) from e
+
+        self.app = FaceAnalysis(name=model_pack_name)
+
+        self.app.prepare(
+            ctx_id=ctx_id,
+            det_size=input_size,
+        )
+
+        self.conf_thresh = conf_thresh
+
+    def detect(self, frame: np.ndarray) -> List[DetectionRecord]:
+
+        faces = self.app.get(frame)
+
+        records = []
+
+        for face in faces:
+
+            x1, y1, x2, y2 = face.bbox.tolist()
+            score = float(face.det_score)
+
+            if score < self.conf_thresh:
+                continue
+
+            kps = (
+                face.kps.tolist()
+                if hasattr(face, "kps") and face.kps is not None
+                else None
+            )
+
+            embedding = (
+                face.embedding.tolist()
+                if hasattr(face, "embedding")
+                and face.embedding is not None
+                else None
+            )
+
+            records.append(
+                DetectionRecord(
+                    frame_idx=-1,
+                    bbox=[x1, y1, x2, y2],
+                    score=score,
+                    kps=kps,
+                    embedding=embedding,
+                )
+            )
+
+        return records
 
 # ─── 더미 (테스트용) ─────────────────────────────────────
 class DummyFaceDetector(BaseFaceDetector):
@@ -101,10 +168,20 @@ class DummyFaceDetector(BaseFaceDetector):
 
 # ─── 팩토리 ──────────────────────────────────────────────
 def build_detector(
+    use_buffalo: bool = True,
+    model_pack_name: str = "buffalo_l",
     model_path: str | Path | None = None,
     **kwargs,
 ) -> BaseFaceDetector:
+
+    if use_buffalo:
+        return BuffaloFaceDetector(
+            model_pack_name=model_pack_name,
+            **kwargs,
+        )
+
     if model_path and Path(model_path).exists():
         return SCRFDDetector(model_path, **kwargs)
+
     print("[FaceDetector] 모델 파일 없음 → DummyFaceDetector 사용")
     return DummyFaceDetector()

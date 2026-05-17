@@ -15,11 +15,12 @@ SAM2_INPUT_PATH = OUTPUT_DIR / "sam2_input.json"
 VIDEO_WINDOW_SEC     = 5       # sliding window 크기 (초)
 VIDEO_OVERLAP_SEC    = 1       # window 간 overlap (초)
 
-# ─── SCRFD ───────────────────────────────────────────────
-SCRFD_MODEL_PATH = ROOT_DIR / "weights" / "scrfd_person_2.5g.onnx"
-SCRFD_INPUT_SIZE = (640, 640)  # (w, h)
-SCRFD_CONF_THRESH = 0.5
-SCRFD_NMS_THRESH  = 0.4
+# ─── InsightFace Buffalo ─────────────────────────────
+INSIGHTFACE_MODEL_PACK = "buffalo_l"
+INSIGHTFACE_INPUT_SIZE = (640, 640)
+INSIGHTFACE_CONF_THRESH = 0.5
+INSIGHTFACE_CTX_ID = -1   # CPU
+# GPU면 0
 
 # ─── ByteTrack ───────────────────────────────────────────
 BYTETRACK_TRACK_THRESH  = 0.5

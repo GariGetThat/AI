@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 import numpy as np
-
+from utils.geometry import iou
 from db.schema import DetectionRecord, TrackRecord
 
 
@@ -92,11 +92,23 @@ class ByteTrackTracker(BaseFaceTracker):
             tlwh = t.tlwh
             x1, y1 = tlwh[0], tlwh[1]
             x2, y2 = x1 + tlwh[2], y1 + tlwh[3]
+            track_bbox = [float(x1), float(y1), float(x2), float(y2)]
+
+            best_det = None
+            best_iou = 0.0
+            for det in detections:
+                score_iou = iou(tuple(track_bbox), tuple(det.bbox))
+                if score_iou > best_iou:
+                    best_iou = score_iou
+                    best_det = det
+
             records.append(TrackRecord(
                 frame_idx=frame_idx,
                 track_id=int(t.track_id),
-                bbox=[x1, y1, x2, y2],
+                bbox=track_bbox,
                 score=float(t.score),
+                kps=best_det.kps if best_det is not None else None,
+                embedding=best_det.embedding if best_det is not None else None,
             ))
         return records
 
@@ -152,6 +164,8 @@ class DummyFaceTracker(BaseFaceTracker):
                 track_id=tid,
                 bbox=list(det.bbox),
                 score=det.score,
+                kps=det.kps,
+                embedding=det.embedding,
             ))
 
         self._prev_tracks = new_tracks

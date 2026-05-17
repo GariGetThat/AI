@@ -10,9 +10,10 @@ from typing import List, Optional
 @dataclass
 class DetectionRecord:
     frame_idx: int
-    bbox: List[float]        # [x1, y1, x2, y2]
+    bbox: List[float]
     score: float
-    kps: Optional[List[List[float]]] = None  # 5 keypoints
+    kps: Optional[List[List[float]]] = None
+    embedding: Optional[List[float]] = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -25,6 +26,8 @@ class TrackRecord:
     track_id: int
     bbox: List[float]
     score: float
+    kps: Optional[List[List[float]]] = None
+    embedding: Optional[List[float]] = None
 
     def to_dict(self) -> dict:
         return asdict(self)

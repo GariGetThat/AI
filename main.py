@@ -10,9 +10,13 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+import time
+import cv2
 
 import config
 from pipeline.pass1_detect_track import run_pass1
+
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -51,10 +55,23 @@ def main() -> None:
     else:
         from models.face_detector import build_detector
         from models.face_tracker  import build_tracker
-        detector = build_detector(config.SCRFD_MODEL_PATH)
+        detector = build_detector(
+            use_buffalo=True,
+            model_pack_name=config.INSIGHTFACE_MODEL_PACK,
+            input_size=config.INSIGHTFACE_INPUT_SIZE,
+            conf_thresh=config.INSIGHTFACE_CONF_THRESH,
+            ctx_id=config.INSIGHTFACE_CTX_ID,
+        )
         tracker  = build_tracker(use_real=False)   # ByteTrack 준비되면 True
 
     # ── PASS 1 ───────────────────────────────────────────
+    start_time = time.perf_counter()
+    cap = cv2.VideoCapture(str(video_path))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+
+    fps = total_frames / elapsed if elapsed > 0 else 0
+
     logger.info("=== PASS 1 시작 ===")
     track_db = run_pass1(
         video_path=video_path,
@@ -62,10 +79,14 @@ def main() -> None:
         tracker=tracker,
         debug=args.debug,
     )
-    logger.info("=== PASS 1 완료 : track 수 = %d ===", len(track_db))
+    elapsed = time.perf_counter() - start_time
 
-    # TODO: PASS 2 (ArcFace + DBSCAN)
-    # TODO: export_for_sam2
+    logger.info(
+        "=== PASS 1 완료 : track 수 = %d | 총 처리 시간 = %.2f sec | 평균 FPS = %.2f ===",
+        len(track_db),
+        elapsed,
+        fps,
+    )
 
 
 if __name__ == "__main__":

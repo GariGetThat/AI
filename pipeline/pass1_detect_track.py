@@ -23,7 +23,7 @@ import config
 from db.schema import TrackDBEntry
 from models.face_detector import BaseFaceDetector, build_detector
 from models.face_tracker import BaseFaceTracker, build_tracker
-from utils.crop import crop_face, save_crop, select_best_crop
+from utils.crop import crop_face_by_kps, save_crop, select_best_crop
 from utils.io import save_json
 from utils.video import VideoMeta, build_windows, get_video_meta, iter_frames
 
@@ -105,6 +105,15 @@ def run_pass1(
             # 2) 추적
             tracks = tracker.update(detections, frame_idx)
 
+            # 2.5) 로그 출력
+            if frame_idx % 30 == 0:
+                logger.info(
+                    "frame %d | detections=%d | tracks=%d",
+                    frame_idx,
+                    len(detections),
+                    len(tracks),
+                )
+
             # 3) track_db 누적
             for tr in tracks:
                 _update_track_db(track_db, tr)
@@ -179,8 +188,14 @@ def _collect_crop_candidate(
 ) -> None:
     """현재 프레임에서 track 의 crop 후보를 수집."""
     tid  = tr.track_id
-    bbox = tuple(int(v) for v in tr.bbox)   # float → int
-    crop = crop_face(frame, bbox, min_size=min_crop_size)
+    bbox = tuple(int(v) for v in tr.bbox)
+
+    crop = crop_face_by_kps(
+        frame=frame,
+        kps=tr.kps,
+        bbox=bbox,
+        min_size=min_crop_size,
+    )
 
     if crop is None:
         return
