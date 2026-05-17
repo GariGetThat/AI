@@ -15,7 +15,7 @@ BBox = Tuple[int, int, int, int]  # x1, y1, x2, y2
 def crop_face(
     frame: np.ndarray,
     bbox: BBox,
-    padding: float = 0.2,
+    padding: float = 0.35,
     min_size: int = 40,
 ) -> np.ndarray | None:
     """
@@ -43,7 +43,7 @@ def crop_face_by_kps(
     frame: np.ndarray,
     kps: list | None,
     bbox: BBox | None = None,
-    padding: float = 0.6,
+    padding: float = 0.8,
     min_size: int = 40,
 ) -> np.ndarray | None:
     """

@@ -36,37 +36,39 @@ class BaseFaceTracker(ABC):
 # ─── 실제 ByteTrack ──────────────────────────────────────
 class ByteTrackTracker(BaseFaceTracker):
     """
-    bytetracker 패키지 사용.
-    pip install bytetracker 필요.
-
-    참고: https://github.com/ifzhang/ByteTrack
-    bytetracker 패키지에 따라 API 가 다를 수 있으니
-    실제 연결 시 update() 내부를 맞춰서 수정할 것.
+    supervision.ByteTrack 사용.
+    buffalo_l detection 결과 bbox를 ByteTrack에 넣어 track_id를 생성한다.
     """
 
     def __init__(
         self,
-        track_thresh: float  = 0.5,
-        high_thresh: float   = 0.6,
-        match_thresh: float  = 0.8,
-        max_time_lost: int   = 30,
-        frame_rate: int      = 30,
+        track_thresh: float = 0.5,
+        high_thresh: float = 0.6,   # supervision에서는 직접 안 쓸 수 있음
+        match_thresh: float = 0.8,
+        max_time_lost: int = 30,
+        frame_rate: int = 30,
     ):
         try:
-            from bytetracker import BYTETracker
+            import supervision as sv
         except ImportError as e:
-            raise ImportError("pip install bytetracker") from e
+            raise ImportError("pip install supervision") from e
 
-        class _Args:
-            pass
+        self.sv = sv
 
-        args = _Args()
-        args.track_thresh  = track_thresh
-        args.track_buffer  = max_time_lost
-        args.match_thresh  = match_thresh
-        args.mot20         = False
-
-        self._tracker = BYTETracker(args, frame_rate=frame_rate)
+        try:
+            self._tracker = sv.ByteTrack(
+                track_activation_threshold=track_thresh,
+                lost_track_buffer=max_time_lost,
+                minimum_matching_threshold=match_thresh,
+                frame_rate=frame_rate,
+            )
+        except TypeError:
+            self._tracker = sv.ByteTrack(
+                track_thresh=track_thresh,
+                track_buffer=max_time_lost,
+                match_thresh=match_thresh,
+                frame_rate=frame_rate,
+            )
 
     def update(
         self,
@@ -76,45 +78,55 @@ class ByteTrackTracker(BaseFaceTracker):
         if not detections:
             return []
 
-        # bytetracker 입력: np.array([[x1,y1,x2,y2,score], ...])
-        det_np = np.array([
-            [*d.bbox, d.score] for d in detections
-        ], dtype=np.float32)
+        xyxy = np.array([d.bbox for d in detections], dtype=np.float32)
+        confidence = np.array([d.score for d in detections], dtype=np.float32)
+        class_id = np.zeros(len(detections), dtype=int)
 
-        online_targets = self._tracker.update(
-            det_np,
-            [9999, 9999],   # img size (실제 사용 시 맞춰 수정)
-            (9999, 9999),
+        sv_detections = self.sv.Detections(
+            xyxy=xyxy,
+            confidence=confidence,
+            class_id=class_id,
         )
 
-        records = []
-        for t in online_targets:
-            tlwh = t.tlwh
-            x1, y1 = tlwh[0], tlwh[1]
-            x2, y2 = x1 + tlwh[2], y1 + tlwh[3]
-            track_bbox = [float(x1), float(y1), float(x2), float(y2)]
+        tracked = self._tracker.update_with_detections(sv_detections)
 
+        records = []
+
+        for i in range(len(tracked)):
+            bbox = tracked.xyxy[i].tolist()
+            score = float(tracked.confidence[i]) if tracked.confidence is not None else 1.0
+            track_id = int(tracked.tracker_id[i])
+
+            # tracked bbox와 원래 detection을 IoU로 다시 매칭해서
+            # kps, embedding을 붙인다.
             best_det = None
             best_iou = 0.0
+
+            from utils.geometry import iou
+
             for det in detections:
-                score_iou = iou(tuple(track_bbox), tuple(det.bbox))
-                if score_iou > best_iou:
-                    best_iou = score_iou
+                iou_score = iou(tuple(bbox), tuple(det.bbox))
+                if iou_score > best_iou:
+                    best_iou = iou_score
                     best_det = det
 
-            records.append(TrackRecord(
-                frame_idx=frame_idx,
-                track_id=int(t.track_id),
-                bbox=track_bbox,
-                score=float(t.score),
-                kps=best_det.kps if best_det is not None else None,
-                embedding=best_det.embedding if best_det is not None else None,
-            ))
+            records.append(
+                TrackRecord(
+                    frame_idx=frame_idx,
+                    track_id=track_id,
+                    bbox=[float(v) for v in bbox],
+                    score=score,
+                    kps=best_det.kps if best_det is not None else None,
+                    embedding=best_det.embedding if best_det is not None else None,
+                )
+            )
+
         return records
 
     def reset(self) -> None:
-        self._tracker.reset()
-
+        # ByteTrack은 전체 영상에서 ID를 유지해야 하므로
+        # window마다 reset하지 않는 것이 좋다.
+        pass
 
 # ─── 더미 ────────────────────────────────────────────────
 class DummyFaceTracker(BaseFaceTracker):

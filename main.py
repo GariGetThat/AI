@@ -34,6 +34,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--debug",   action="store_true", help="디버그 시각화 활성화")
     p.add_argument("--dummy",   action="store_true",
                    help="실제 모델 없이 더미로 파이프라인 테스트")
+    p.add_argument(
+        "--method",
+        choices=["buffalo", "fairmot"],
+        default="buffalo",
+        help="실행 방식 선택: buffalo 또는 fairmot",
+    )
     return p.parse_args()
 
 
@@ -44,6 +50,13 @@ def main() -> None:
     if not video_path.exists():
         logger.error("영상 파일을 찾을 수 없습니다: %s", video_path)
         sys.exit(1)
+
+    if args.method == "fairmot":
+        from pipeline.pass1_fairmot import run_fairmot
+
+        summary = run_fairmot(video_path=video_path)
+        logger.info("FairMOT summary: %s", summary)
+        return
 
     # ── 모델 빌드 ────────────────────────────────────────
     if args.dummy:
@@ -62,15 +75,16 @@ def main() -> None:
             conf_thresh=config.INSIGHTFACE_CONF_THRESH,
             ctx_id=config.INSIGHTFACE_CTX_ID,
         )
-        tracker  = build_tracker(use_real=False)   # ByteTrack 준비되면 True
+        tracker = build_tracker(
+            use_real=True,
+            track_thresh=config.BYTETRACK_TRACK_THRESH,
+            high_thresh=config.BYTETRACK_HIGH_THRESH,
+            match_thresh=config.BYTETRACK_MATCH_THRESH,
+            max_time_lost=config.BYTETRACK_MAX_TIME_LOST,
+        )
 
     # ── PASS 1 ───────────────────────────────────────────
     start_time = time.perf_counter()
-    cap = cv2.VideoCapture(str(video_path))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    cap.release()
-
-    fps = total_frames / elapsed if elapsed > 0 else 0
 
     logger.info("=== PASS 1 시작 ===")
     track_db = run_pass1(
@@ -80,6 +94,12 @@ def main() -> None:
         debug=args.debug,
     )
     elapsed = time.perf_counter() - start_time
+
+    cap = cv2.VideoCapture(str(video_path))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+
+    fps = total_frames / elapsed if elapsed > 0 else 0
 
     logger.info(
         "=== PASS 1 완료 : track 수 = %d | 총 처리 시간 = %.2f sec | 평균 FPS = %.2f ===",

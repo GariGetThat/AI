@@ -22,6 +22,13 @@ INSIGHTFACE_CONF_THRESH = 0.5
 INSIGHTFACE_CTX_ID = -1   # CPU
 # GPU면 0
 
+# ─── FairMOT ─────────────────────────────────────────────
+FAIRMOT_DIR = ROOT_DIR / "external" / "FairMOT"
+FAIRMOT_OUTPUT_DIR = OUTPUT_DIR / "FairMOT"
+FAIRMOT_WEIGHTS = FAIRMOT_DIR / "models" / "fairmot_dla34.pth"
+FAIRMOT_RESULT_TXT = FAIRMOT_OUTPUT_DIR / "fairmot_results.txt"
+FAIRMOT_SUMMARY_JSON = FAIRMOT_OUTPUT_DIR / "fairmot_summary.json"
+
 # ─── ByteTrack ───────────────────────────────────────────
 BYTETRACK_TRACK_THRESH  = 0.5
 BYTETRACK_HIGH_THRESH   = 0.6
