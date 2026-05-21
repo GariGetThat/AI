@@ -1079,9 +1079,25 @@ class PrivacyReasoningEngine:
             tracks = list(self.last_tracks)  # 복사본으로
         # 중복 제거 전 디버그
         print(f"[Debug] 중복 제거 전 트랙 수: {len(tracks)}", flush=True)
+        for t in tracks:
+            print(f"[RawTrack] {t.object_id} {t.start_frame} ~ {t.end_frame} {t.representative_box()}", flush=True)
+        # raw 트랙 저장
+        import json as _json
+        raw_payload = []
+        for t in tracks:
+            raw_payload.append({
+                "id": t.object_id,
+                "start_frame": int(t.start_frame),
+                "end_frame": int(t.end_frame),
+                "box": t.representative_box(),
+                "visible_text": t.representative_visible_text(),
+            })
+        with open("raw_tracks.json", "w", encoding="utf-8") as f:
+            _json.dump(raw_payload, f, ensure_ascii=False, indent=2)
+        print("[Debug] raw_tracks.json 저장 완료", flush=True)
+        
         # IoU 기반 중복 트랙 제거
 
-        # IoU 기반 중복 트랙 제거
         def compute_iou_box(a, b):
             ax1, ay1, ax2, ay2 = a
             bx1, by1, bx2, by2 = b
@@ -1126,6 +1142,8 @@ class PrivacyReasoningEngine:
 
         payload: List[Dict] = []
         for track in tracks:
+            if track.start_frame == track.end_frame:
+                track.end_frame = track.start_frame + 10
             payload.append(
                 {
                     "id": track.object_id,
@@ -1403,6 +1421,12 @@ def parse_args(project_root: Path) -> argparse.Namespace:
         default="korean",
         help="PaddleOCR language option",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="결과물 저장 디렉토리 (기본값: project_root)",
+    )
     return parser.parse_args()
 
 
@@ -1422,12 +1446,19 @@ if __name__ == "__main__":
         args = parse_args(project_root)
 
         video_path = Path(args.video).expanduser().resolve()
-        debug_crop_dir = project_root / "debug_crops"
+        # output_dir 설정
+        if args.output_dir:
+            output_dir = Path(args.output_dir).expanduser().resolve()
+            output_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            output_dir = project_root
+
+        debug_crop_dir = output_dir / "debug_crops"
         from datetime import datetime
         _timestamp = datetime.now().strftime("%m%d_%H%M")
-        debug_video_fullfps_path = project_root / f"debug_bbox_output_fullfps_{_timestamp}.mp4"
-        debug_video_sampled_path = project_root / f"debug_bbox_output_sampled_{_timestamp}.mp4"
-        json_output_path = project_root / "privacy_runtime_bar.json"
+        debug_video_fullfps_path = output_dir / f"debug_bbox_output_fullfps_{_timestamp}.mp4"
+        debug_video_sampled_path = output_dir / f"debug_bbox_output_sampled_{_timestamp}.mp4"
+        json_output_path = output_dir / "privacy_runtime_bar.json"
         user_prompt = args.prompt
         sample_fps = args.sample_fps
         text_detector_lang = args.text_detector_lang
