@@ -1,7 +1,8 @@
 debug_crops/
-debug_bbox_output_fullfps.mp4
-debug_bbox_output_sampled.mp4
-privacy_runtime_bar.json
+debug_bbox_output_*.mp4
 *.mp4
 __pycache__/
 *.pyc
+*.jpg
+raw_tracks.json
+run_log.txt
