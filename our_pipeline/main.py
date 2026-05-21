@@ -5,9 +5,9 @@ import json
 from our_pipeline.blur_processor import BlurProcessor
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--video", type=str, required=True, help="영상 파일 경로")
-parser.add_argument("--targets", type=str, required=True, help="targets JSON 파일 경로")
-args = parser.parse_args()
+parser.add_argument("--video", type=str, required=True, help="영상 파일 경로") # 처리할 영상 경로 지정 옵션
+parser.add_argument("--targets", type=str, required=True, help="targets JSON 파일 경로") # 좌표 및 프레임 정보 JSON 경로 지정 옵션
+args = parser.parse_args() # 터미널에 입력된 실제 인자값들을 변수에 할당
 
 # targets JSON 파일 읽기
 with open(args.targets, "r") as f:
@@ -20,7 +20,7 @@ processor = ChunkProcessor(
 
 results = processor.process(args.video, targets)
 
-np.save("results.npy", results)
+# np.save("results.npy", results)
 
-blur = BlurProcessor(blur_strength=51)
-blur.process(args.video, results, output_path="output_video.avi")
+blur = BlurProcessor(blur_strength=11)
+blur.process(args.video, results, targets, output_path="output_video.avi")

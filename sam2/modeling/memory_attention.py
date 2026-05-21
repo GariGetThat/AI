@@ -71,6 +71,9 @@ class MemoryAttentionLayer(nn.Module):
 
         # Cross-Attention
         tgt2 = self.norm2(tgt)
+        memory = memory.to(tgt2.dtype)
+        pos = pos.to(tgt2.dtype) if pos is not None else pos
+        query_pos = query_pos.to(tgt2.dtype) if query_pos is not None else query_pos
         tgt2 = self.cross_attn_image(
             q=tgt2 + query_pos if self.pos_enc_at_cross_attn_queries else tgt2,
             k=memory + pos if self.pos_enc_at_cross_attn_keys else memory,

@@ -2,10 +2,10 @@ import cv2
 import numpy as np
 
 class BlurProcessor:
-    def __init__(self, blur_strength=51):
+    def __init__(self, blur_strength=11):
         self.blur_strength = blur_strength # 블러 강도 (홀수여야 함)
 
-    def process(self, video_path, results, output_path="output_video.avi"):
+    def process(self, video_path, results, targets, output_path="output_video.avi"):
         """
         video_path : 원본 영상 경로
         results : chunk_processor에서 나온 마스크 결과 
@@ -20,32 +20,38 @@ class BlurProcessor:
         # 출력 영상 설정
         out = cv2.VideoWriter(
             output_path,
-            cv2.VideoWriter_fourcc(*"XVID"),
+            cv2.VideoWriter_fourcc(*"XVID"), # avi 저장 형식
             fps,
             (int(video_width), int(video_height))  # int로 명시적 변환
         )
 
         frame_idx = 0
         while True:
-            ret, frame = cap.read()
+            ret, frame = cap.read() # 한 프레임씩 읽기
             if not ret:
                 break
 
             # 이 프레임에 마스크가 있으면 블러 처리
             if frame_idx in results:
                 for obj_id, mask in results[frame_idx].items():
-                    # binary mask 변환
-                    binary_mask = (mask[0] < 0).astype(np.uint8)  # 0 or 1
-
-                    # 블러 처리
-                    blurred = cv2.GaussianBlur(frame, (self.blur_strength, self.blur_strength), 0)
+                    # targets 설정에서 해당 객체 정보(type, box 등)을 가져옴
+                    target = next((t for t in targets if t["id"] == obj_id), None)
+                    if target is None:
+                        continue
                     
-                    # mask를 3채널로 확장
-                    binary_mask_3ch = np.stack([binary_mask, binary_mask, binary_mask], axis=-1)
+                    if target["type"] == "face":
+                        # SAM2 마스크로 블러
+                        binary_mask = (mask[0] > 0.8).astype(np.uint8)
+                        binary_mask_3ch = np.stack([binary_mask]*3, axis=-1)
+                        blurred = cv2.GaussianBlur(frame, (self.blur_strength, self.blur_strength), 0)
+                        frame = np.where(binary_mask_3ch == 1, blurred, frame).astype(np.uint8)
                     
-                    # 블러 적용
-                    frame = np.where(binary_mask_3ch == 1, blurred, frame)
-                    frame = frame.astype(np.uint8) 
+                    else:
+                        # box 직접 블러
+                        x1, y1, x2, y2 = target["box"]
+                        roi = frame[y1:y2, x1:x2]
+                        if roi.size > 0:
+                            frame[y1:y2, x1:x2] = cv2.GaussianBlur(roi, (self.blur_strength, self.blur_strength), 0)
 
             out.write(frame)
             frame_idx += 1
