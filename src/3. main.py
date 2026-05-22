@@ -489,7 +489,7 @@ class PrivacyReasoningEngine:
         if len(filtered_items) == 0:
             return []
 
-        groups = self.group_text_items(filtered_items)
+        groups = self.group_text_items(filtered_items, frame_w=width, frame_h=height)
 
         candidates: List[TextGroupCandidate] = []
         for group_items in groups:
@@ -633,7 +633,7 @@ class PrivacyReasoningEngine:
 
         return items
 
-    def group_text_items(self, items: List[OCRTextItem]) -> List[List[OCRTextItem]]:
+    def group_text_items(self, items: List[OCRTextItem], frame_w: int = 9999, frame_h: int = 9999) -> List[List[OCRTextItem]]:
         if len(items) == 0:
             return []
 
@@ -679,7 +679,9 @@ class PrivacyReasoningEngine:
                         and it.y1 <= gy2 + int(round(gh * 0.8))
                         and it.y2 >= gy1 - int(round(gh * 0.8))
                     )
-
+                    max_group_area = frame_w * frame_h * 0.15
+                    if (gx2 - gx1) * (gy2 - gy1) > max_group_area:
+                        break
                     if (close_x and close_y) or overlaps or within_band:
                         current_group.append(it)
                         used[j] = True
