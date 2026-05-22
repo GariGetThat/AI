@@ -1,3 +1,4 @@
+import os
 import platform
 from pathlib import Path
 
@@ -15,12 +16,14 @@ SAM2_INPUT_PATH = OUTPUT_DIR / "sam2_input.json"
 INSIGHTFACE_MODEL_PACK = "buffalo_l"
 INSIGHTFACE_INPUT_SIZE = (640, 640)
 INSIGHTFACE_CONF_THRESH = 0.6
-# GPU 자동 설정
-if platform.system() == "Darwin":
-    # macOS
+# 환경변수 우선
+if "INSIGHTFACE_CTX_ID" in os.environ:
+    INSIGHTFACE_CTX_ID = int(os.environ["INSIGHTFACE_CTX_ID"])
+
+elif platform.system() == "Darwin":
     INSIGHTFACE_CTX_ID = -1
+
 else:
-    # Colab / Linux CUDA
     INSIGHTFACE_CTX_ID = 0
 
 # ─── ByteTrack ───────────────────────────────────────────
