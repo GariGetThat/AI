@@ -3,3 +3,7 @@ outputs/
 external/
 *.pth
 .ipynb_checkpoints/
+capstone/
+.venv/
+*.pyc
+.DS_Store
