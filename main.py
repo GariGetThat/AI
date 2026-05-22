@@ -21,6 +21,8 @@ import config
 from models.face_detector import build_detector
 from models.face_tracker import build_tracker
 from pipeline.pass1_detect_track import run_pass1
+from pipeline.pass2_cluster import run_pass2
+from pipeline.export_for_sam2 import export_for_sam2
 
 
 logging.basicConfig(
@@ -104,6 +106,30 @@ def main() -> None:
         elapsed,
         fps,
     )
+
+    # ── PASS2 실행 ─────────────────────────────────────
+    logger.info("=== PASS2 시작 ===")
+
+    person_db = run_pass2(
+        top_n=config.TOP_N,
+    )
+
+    logger.info(
+        "=== PASS2 완료 | person 수=%d ===",
+        len(person_db),
+    )
+
+    # ── SAM2 export ────────────────────────────────────
+    logger.info("=== SAM2 export 시작 ===")
+
+    sam2_inputs = export_for_sam2()
+
+    logger.info(
+        "=== SAM2 export 완료 | 대상 수=%d ===",
+        len(sam2_inputs),
+    )
+
+    logger.info("=== 전체 파이프라인 완료 ===")
 
 
 if __name__ == "__main__":
