@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 
 # ─── 경로 ────────────────────────────────────────────────
@@ -14,7 +15,13 @@ SAM2_INPUT_PATH = OUTPUT_DIR / "sam2_input.json"
 INSIGHTFACE_MODEL_PACK = "buffalo_l"
 INSIGHTFACE_INPUT_SIZE = (640, 640)
 INSIGHTFACE_CONF_THRESH = 0.6
-INSIGHTFACE_CTX_ID = 0   # Colab T4 GPU
+# GPU 자동 설정
+if platform.system() == "Darwin":
+    # macOS
+    INSIGHTFACE_CTX_ID = -1
+else:
+    # Colab / Linux CUDA
+    INSIGHTFACE_CTX_ID = 0
 
 # ─── ByteTrack ───────────────────────────────────────────
 BYTETRACK_TRACK_THRESH  = 0.5
