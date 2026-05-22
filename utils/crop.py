@@ -2,6 +2,7 @@
 """얼굴 crop 추출 및 저장 유틸리티"""
 
 from __future__ import annotations
+
 from pathlib import Path
 from typing import List, Tuple
 
@@ -9,7 +10,7 @@ import cv2
 import numpy as np
 
 
-BBox = Tuple[int, int, int, int]  # x1, y1, x2, y2
+BBox = Tuple[int, int, int, int]
 
 
 def crop_face(
@@ -18,14 +19,9 @@ def crop_face(
     padding: float = 0.35,
     min_size: int = 40,
 ) -> np.ndarray | None:
-    """
-    bbox 기준으로 padding을 추가해 얼굴 crop.
-    min_size 보다 작으면 None 반환.
-    """
     h, w = frame.shape[:2]
     x1, y1, x2, y2 = bbox
 
-    # padding 추가
     bw, bh = x2 - x1, y2 - y1
     px, py = int(bw * padding), int(bh * padding)
 
@@ -39,6 +35,7 @@ def crop_face(
 
     return frame[y1:y2, x1:x2].copy()
 
+
 def crop_face_by_kps(
     frame: np.ndarray,
     kps: list | None,
@@ -46,14 +43,10 @@ def crop_face_by_kps(
     padding: float = 0.8,
     min_size: int = 40,
 ) -> np.ndarray | None:
-    """
-    5-point keypoints 기준으로 얼굴 crop.
-    kps가 없으면 bbox crop으로 fallback.
-    """
     if kps is None:
         if bbox is None:
             return None
-        return crop_face(frame, bbox, padding=0.2, min_size=min_size)
+        return crop_face(frame, bbox, padding=0.25, min_size=min_size)
 
     h, w = frame.shape[:2]
     pts = np.array(kps, dtype=np.float32)
@@ -65,6 +58,11 @@ def crop_face_by_kps(
 
     bw = x2 - x1
     bh = y2 - y1
+
+    if bw <= 0 or bh <= 0:
+        if bbox is None:
+            return None
+        return crop_face(frame, bbox, padding=0.25, min_size=min_size)
 
     size = int(max(bw, bh) * (1.0 + padding))
     cx = int((x1 + x2) / 2)
@@ -80,23 +78,47 @@ def crop_face_by_kps(
 
     return frame[ny1:ny2, nx1:nx2].copy()
 
-def save_crop(crop: np.ndarray, save_path: str | Path, quality: int = 95) -> bool:
-    """crop 이미지를 jpg로 저장. 성공 여부 반환."""
+
+def save_crop(
+    crop: np.ndarray,
+    save_path: str | Path,
+    quality: int = 90,
+) -> bool:
     save_path = Path(save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    ok, buf = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, quality])
+
+    ok, buf = cv2.imencode(
+        ".jpg",
+        crop,
+        [cv2.IMWRITE_JPEG_QUALITY, quality],
+    )
+
     if ok:
         buf.tofile(str(save_path))
+
     return ok
 
 
+def _crop_quality_score(
+    crop: np.ndarray,
+    confidence: float,
+) -> float:
+    h, w = crop.shape[:2]
+    area = h * w
+
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    sharpness = cv2.Laplacian(gray, cv2.CV_64F).var()
+
+    return confidence * 1.0 + min(area / 10000.0, 1.0) * 0.3 + min(sharpness / 100.0, 1.0) * 0.3
+
+
 def select_best_crop(
-    crops: List[Tuple[np.ndarray, float]]   # (crop, confidence)
+    crops: List[Tuple[np.ndarray, float]],
 ) -> np.ndarray | None:
-    """
-    score가 가장 높은 crop 반환.
-    crops : [(crop_img, score), ...]
-    """
     if not crops:
         return None
-    return max(crops, key=lambda x: x[1])[0]
+
+    return max(
+        crops,
+        key=lambda x: _crop_quality_score(x[0], x[1]),
+    )[0]

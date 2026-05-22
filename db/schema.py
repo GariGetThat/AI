@@ -43,8 +43,8 @@ class TrackDBEntry:
     end_frame: int              = 0
     duration: int               = 0
     repr_crop_path: Optional[str] = None
-    embedding: Optional[List[float]] = None   # PASS2에서 채움
-    person_id: Optional[str]    = None         # PASS2에서 채움
+    embedding: Optional[List[float]] = None   # track 대표 embedding
+    person_id: Optional[str] = None           # PASS2 clustering 후 채움
 
     def to_dict(self) -> dict:
         return asdict(self)

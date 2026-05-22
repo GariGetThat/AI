@@ -1,21 +1,26 @@
 # main.py
+
 """
 실행 엔트리포인트.
 
 사용 예:
-    python main.py --video input.mp4 --top-n 2 --debug
+    python main.py --video input.mp4 --debug
 """
+
+from __future__ import annotations
 
 import argparse
 import logging
 import sys
-from pathlib import Path
 import time
+from pathlib import Path
+
 import cv2
 
 import config
+from models.face_detector import build_detector
+from models.face_tracker import build_tracker
 from pipeline.pass1_detect_track import run_pass1
-
 
 
 logging.basicConfig(
@@ -23,86 +28,78 @@ logging.basicConfig(
     format="[%(levelname)s] %(name)s : %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
+
 logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Privacy Guard - 영상 프라이버시 보호 AI 편집 도구")
-    p.add_argument("--video",   required=True, help="입력 영상 경로")
-    p.add_argument("--top-n",   type=int, default=config.TOP_N,
-                   help="블러 제외할 주요 인물 수 (기본: %(default)s)")
-    p.add_argument("--debug",   action="store_true", help="디버그 시각화 활성화")
-    p.add_argument("--dummy",   action="store_true",
-                   help="실제 모델 없이 더미로 파이프라인 테스트")
-    p.add_argument(
-        "--method",
-        choices=["buffalo", "fairmot"],
-        default="buffalo",
-        help="실행 방식 선택: buffalo 또는 fairmot",
+    p = argparse.ArgumentParser(
+        description="Privacy Guard - 얼굴 탐지 및 추적 파이프라인"
     )
+
+    p.add_argument(
+        "--video",
+        required=True,
+        help="입력 영상 경로",
+    )
+
+    p.add_argument(
+        "--debug",
+        action="store_true",
+        help="디버그 시각화 활성화",
+    )
+
     return p.parse_args()
 
 
 def main() -> None:
+
     args = parse_args()
 
     video_path = Path(args.video)
+
     if not video_path.exists():
         logger.error("영상 파일을 찾을 수 없습니다: %s", video_path)
         sys.exit(1)
 
-    if args.method == "fairmot":
-        from pipeline.pass1_fairmot import run_fairmot
+    # ── detector ───────────────────────────────────────
+    detector = build_detector(
+        model_pack_name=config.INSIGHTFACE_MODEL_PACK,
+        input_size=config.INSIGHTFACE_INPUT_SIZE,
+        conf_thresh=config.INSIGHTFACE_CONF_THRESH,
+        ctx_id=config.INSIGHTFACE_CTX_ID,
+    )
 
-        summary = run_fairmot(video_path=video_path)
-        logger.info("FairMOT summary: %s", summary)
-        return
+    # ── tracker ────────────────────────────────────────
+    tracker = build_tracker(
+        track_thresh=config.BYTETRACK_TRACK_THRESH,
+        high_thresh=config.BYTETRACK_HIGH_THRESH,
+        match_thresh=config.BYTETRACK_MATCH_THRESH,
+        max_time_lost=config.BYTETRACK_MAX_TIME_LOST,
+    )
 
-    # ── 모델 빌드 ────────────────────────────────────────
-    if args.dummy:
-        logger.info("더미 모드 활성화 → 실제 모델 로드 생략")
-        from models.face_detector import DummyFaceDetector
-        from models.face_tracker  import DummyFaceTracker
-        detector = DummyFaceDetector()
-        tracker  = DummyFaceTracker()
-    else:
-        from models.face_detector import build_detector
-        from models.face_tracker  import build_tracker
-        detector = build_detector(
-            use_buffalo=True,
-            model_pack_name=config.INSIGHTFACE_MODEL_PACK,
-            input_size=config.INSIGHTFACE_INPUT_SIZE,
-            conf_thresh=config.INSIGHTFACE_CONF_THRESH,
-            ctx_id=config.INSIGHTFACE_CTX_ID,
-        )
-        tracker = build_tracker(
-            use_real=True,
-            track_thresh=config.BYTETRACK_TRACK_THRESH,
-            high_thresh=config.BYTETRACK_HIGH_THRESH,
-            match_thresh=config.BYTETRACK_MATCH_THRESH,
-            max_time_lost=config.BYTETRACK_MAX_TIME_LOST,
-        )
-
-    # ── PASS 1 ───────────────────────────────────────────
+    # ── PASS1 실행 ─────────────────────────────────────
     start_time = time.perf_counter()
 
-    logger.info("=== PASS 1 시작 ===")
+    logger.info("=== PASS1 시작 ===")
+
     track_db = run_pass1(
         video_path=video_path,
         detector=detector,
         tracker=tracker,
         debug=args.debug,
     )
+
     elapsed = time.perf_counter() - start_time
 
     cap = cv2.VideoCapture(str(video_path))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     cap.release()
 
-    fps = total_frames / elapsed if elapsed > 0 else 0
+    fps = total_frames / elapsed if elapsed > 0 else 0.0
 
     logger.info(
-        "=== PASS 1 완료 : track 수 = %d | 총 처리 시간 = %.2f sec | 평균 FPS = %.2f ===",
+        "=== PASS1 완료 | track 수=%d | %.2f sec | %.2f FPS ===",
         len(track_db),
         elapsed,
         fps,
