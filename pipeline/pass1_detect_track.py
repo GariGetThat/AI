@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -41,7 +42,6 @@ def run_pass1(
 
     if detector is None:
         detector = build_detector(
-            use_buffalo=True,
             model_pack_name=config.INSIGHTFACE_MODEL_PACK,
             input_size=config.INSIGHTFACE_INPUT_SIZE,
             conf_thresh=config.INSIGHTFACE_CONF_THRESH,
@@ -55,7 +55,7 @@ def run_pass1(
             match_thresh=config.BYTETRACK_MATCH_THRESH,
             max_time_lost=config.BYTETRACK_MAX_TIME_LOST,
         )
-        
+
     meta = get_video_meta(video_path)
 
     logger.info(
@@ -68,25 +68,33 @@ def run_pass1(
     track_db: Dict[int, TrackDBEntry] = {}
     crop_candidates: CropCandidates = {}
 
+    total_detect_time = 0.0
+    total_track_time = 0.0
+    total_crop_time = 0.0
+    total_update_time = 0.0
+    processed_frames = 0
+
     for frame_idx, frame in iter_frames(video_path):
+        frame_start = time.perf_counter()
+
+        # 1. Face detection
+        t0 = time.perf_counter()
         detections = detector.detect(frame)
+        t1 = time.perf_counter()
 
         for d in detections:
             d.frame_idx = frame_idx
 
+        # 2. Tracking
         tracks = tracker.update(detections, frame_idx)
+        t2 = time.perf_counter()
 
-        if frame_idx % 30 == 0:
-            logger.info(
-                "frame %d | detections=%d | tracks=%d",
-                frame_idx,
-                len(detections),
-                len(tracks),
-            )
-
+        # 3. Track DB update
         for tr in tracks:
             _update_track_db(track_db, tr)
+        t3 = time.perf_counter()
 
+        # 4. Representative crop candidate collection
         if frame_idx % repr_interval == 0:
             for tr in tracks:
                 _collect_crop_candidate(
@@ -95,6 +103,34 @@ def run_pass1(
                     frame,
                     min_crop_size,
                 )
+        t4 = time.perf_counter()
+
+        detect_time = t1 - t0
+        track_time = t2 - t1
+        update_time = t3 - t2
+        crop_time = t4 - t3
+
+        total_detect_time += detect_time
+        total_track_time += track_time
+        total_update_time += update_time
+        total_crop_time += crop_time
+        processed_frames += 1
+
+        if frame_idx % 30 == 0:
+            logger.info(
+                (
+                    "frame %d | detections=%d | tracks=%d | "
+                    "detect=%.3fs | track=%.3fs | update=%.3fs | crop=%.3fs | total=%.3fs"
+                ),
+                frame_idx,
+                len(detections),
+                len(tracks),
+                detect_time,
+                track_time,
+                update_time,
+                crop_time,
+                time.perf_counter() - frame_start,
+            )
 
         if debug:
             _draw_debug(frame, tracks, frame_idx)
@@ -114,6 +150,8 @@ def run_pass1(
         min_frames=config.MIN_TRACK_FRAMES,
     )
 
+    save_crop_start = time.perf_counter()
+
     _save_repr_crops(
         track_db,
         crop_candidates,
@@ -121,10 +159,31 @@ def run_pass1(
         crop_quality,
     )
 
+    save_crop_time = time.perf_counter() - save_crop_start
+
+    save_json_start = time.perf_counter()
+
     save_json(
         {str(k): v.to_dict() for k, v in track_db.items()},
         output_path,
     )
+
+    save_json_time = time.perf_counter() - save_json_start
+
+    if processed_frames > 0:
+        logger.info(
+            (
+                "PASS1 profiling summary | "
+                "avg_detect=%.3fs | avg_track=%.3fs | avg_update=%.3fs | avg_crop=%.3fs | "
+                "save_crops=%.3fs | save_json=%.3fs"
+            ),
+            total_detect_time / processed_frames,
+            total_track_time / processed_frames,
+            total_update_time / processed_frames,
+            total_crop_time / processed_frames,
+            save_crop_time,
+            save_json_time,
+        )
 
     logger.info(
         "PASS1 완료 | track 수: %d | 저장: %s",
@@ -136,28 +195,28 @@ def run_pass1(
 
 
 def _update_track_db(
-        track_db: Dict[int, TrackDBEntry],
-        tr,
-    ) -> None:
-        tid = tr.track_id
+    track_db: Dict[int, TrackDBEntry],
+    tr,
+) -> None:
+    tid = tr.track_id
 
-        if tid not in track_db:
-            track_db[tid] = TrackDBEntry(
-                track_id=tid,
-                start_frame=tr.frame_idx,
-            )
+    if tid not in track_db:
+        track_db[tid] = TrackDBEntry(
+            track_id=tid,
+            start_frame=tr.frame_idx,
+        )
 
-        entry = track_db[tid]
+    entry = track_db[tid]
 
-        if not entry.frames or entry.frames[-1] != tr.frame_idx:
-            entry.frames.append(tr.frame_idx)
-            entry.bboxes.append(list(tr.bbox))
+    if not entry.frames or entry.frames[-1] != tr.frame_idx:
+        entry.frames.append(tr.frame_idx)
+        entry.bboxes.append(list(tr.bbox))
 
-        entry.end_frame = max(entry.end_frame, tr.frame_idx)
+    entry.end_frame = max(entry.end_frame, tr.frame_idx)
 
-        # PASS2 clustering을 위해 track 대표 embedding 저장
-        if tr.embedding is not None and entry.embedding is None:
-            entry.embedding = tr.embedding
+    # PASS2 clustering을 위해 track 대표 embedding 저장
+    if tr.embedding is not None and entry.embedding is None:
+        entry.embedding = tr.embedding
 
 
 def _collect_crop_candidate(

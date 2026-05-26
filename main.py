@@ -70,6 +70,7 @@ def main() -> None:
         input_size=config.INSIGHTFACE_INPUT_SIZE,
         conf_thresh=config.INSIGHTFACE_CONF_THRESH,
         ctx_id=config.INSIGHTFACE_CTX_ID,
+        allowed_modules=config.INSIGHTFACE_ALLOWED_MODULES,
     )
 
     # ── tracker ────────────────────────────────────────

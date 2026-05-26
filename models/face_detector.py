@@ -17,17 +17,13 @@ class BaseFaceDetector(ABC):
 
 
 class BuffaloFaceDetector(BaseFaceDetector):
-    """
-    InsightFace FaceAnalysis buffalo_l 사용.
-    detection + keypoint + embedding 추출.
-    """
-
     def __init__(
         self,
         model_pack_name: str = "buffalo_l",
         input_size: Tuple[int, int] = (640, 640),
         conf_thresh: float = 0.6,
         ctx_id: int = 0,
+        allowed_modules: list[str] | None = None,
     ):
         try:
             from insightface.app import FaceAnalysis
@@ -36,7 +32,13 @@ class BuffaloFaceDetector(BaseFaceDetector):
                 "pip install insightface onnxruntime-gpu"
             ) from e
 
-        self.app = FaceAnalysis(name=model_pack_name)
+        if allowed_modules is None:
+            allowed_modules = ["detection", "recognition"]
+
+        self.app = FaceAnalysis(
+            name=model_pack_name,
+            allowed_modules=allowed_modules,
+        )
 
         self.app.prepare(
             ctx_id=ctx_id,
