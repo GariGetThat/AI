@@ -261,6 +261,32 @@ def _merge_short_persons(
             if long_emb is None:
                 continue
 
+            time_overlap = _time_overlap_ratio(short_person, long_person)
+
+            if time_overlap > config.PERSON_MERGE_MAX_TIME_OVERLAP:
+                logger.info(
+                    "merge skip by time overlap | %s -> %s | overlap=%.3f",
+                    short_pid,
+                    long_pid,
+                    time_overlap,
+                )
+                continue
+
+            center_dist = _spatial_center_distance(
+                short_person,
+                long_person,
+                track_db,
+            )
+
+            if center_dist > config.PERSON_MERGE_MAX_CENTER_DIST:
+                logger.info(
+                    "merge skip by spatial distance | %s -> %s | center_dist=%.3f",
+                    short_pid,
+                    long_pid,
+                    center_dist,
+                )
+                continue
+
             dist = _cosine_distance(short_emb, long_emb)
 
             if dist < best_dist:
@@ -355,6 +381,63 @@ def _select_best_track_for_person(
         candidates,
         key=lambda e: e.duration,
     )
+
+def _time_overlap_ratio(
+    a: PersonDBEntry,
+    b: PersonDBEntry,
+) -> float:
+    overlap_start = max(a.start_frame, b.start_frame)
+    overlap_end = min(a.end_frame, b.end_frame)
+
+    overlap = max(0, overlap_end - overlap_start + 1)
+
+    short_duration = min(
+        max(1, a.end_frame - a.start_frame + 1),
+        max(1, b.end_frame - b.start_frame + 1),
+    )
+
+    return overlap / short_duration
+
+
+def _person_center(
+    person: PersonDBEntry,
+    track_db: Dict[int, TrackDBEntry],
+) -> np.ndarray | None:
+    centers = []
+
+    for tid in person.track_ids:
+        if tid not in track_db:
+            continue
+
+        track = track_db[tid]
+
+        for bbox in track.bboxes:
+            x1, y1, x2, y2 = bbox
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
+            centers.append([cx, cy])
+
+    if not centers:
+        return None
+
+    return np.mean(np.array(centers, dtype=np.float32), axis=0)
+
+
+def _spatial_center_distance(
+    a: PersonDBEntry,
+    b: PersonDBEntry,
+    track_db: Dict[int, TrackDBEntry],
+) -> float:
+    ca = _person_center(a, track_db)
+    cb = _person_center(b, track_db)
+
+    if ca is None or cb is None:
+        return 0.0
+
+    # 대략 1920x1080 기준 정규화 대신 bbox 좌표 자체 스케일 영향 줄이기
+    # 현재 영상 해상도를 직접 모르면 diagonal을 넉넉히 2200으로 둠
+    dist = np.linalg.norm(ca - cb)
+    return float(dist / 2200.0)
 
 
 if __name__ == "__main__":
