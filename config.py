@@ -35,14 +35,14 @@ else:
 # ─── ByteTrack ───────────────────────────────────────────
 BYTETRACK_TRACK_THRESH  = 0.5
 BYTETRACK_HIGH_THRESH   = 0.6
-BYTETRACK_MATCH_THRESH  = 0.8
-BYTETRACK_MAX_TIME_LOST = 30
+BYTETRACK_MATCH_THRESH  = 0.7
+BYTETRACK_MAX_TIME_LOST = 90
 
 # ─── track filtering ─────────────────────────────────────
-MIN_TRACK_FRAMES = 10
+MIN_TRACK_FRAMES = 20
 
 # ─── DBSCAN ──────────────────────────────────────────────
-DBSCAN_EPS = 0.45
+DBSCAN_EPS = 0.55
 DBSCAN_MIN_SAMPLES = 1
 
 # ─── Top-N ───────────────────────────────────────────────

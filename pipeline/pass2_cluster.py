@@ -150,6 +150,21 @@ def run_pass2(
     for rank, person in enumerate(sorted_persons):
         person.is_main = rank < top_n
 
+    logger.info("PASS2 person summary:")
+
+    for person in sorted_persons:
+        logger.info(
+            (
+                "person_id=%s | tracks=%s | total_frames=%d | "
+                "start=%d | end=%d | is_main=%s"
+            ),
+            person.person_id,
+            person.track_ids,
+            person.total_frames,
+            person.start_frame,
+            person.end_frame,
+            person.is_main,
+        )
     for person in person_db.values():
         best_track = _select_best_track_for_person(person, track_db)
 
