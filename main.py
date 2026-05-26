@@ -111,13 +111,18 @@ def main() -> None:
     # ── PASS2 실행 ─────────────────────────────────────
     logger.info("=== PASS2 시작 ===")
 
+    pass2_start = time.perf_counter()
+
     person_db = run_pass2(
         top_n=config.TOP_N,
     )
 
+    pass2_elapsed = time.perf_counter() - pass2_start
+
     logger.info(
-        "=== PASS2 완료 | person 수=%d ===",
+        "=== PASS2 완료 | person 수=%d | %.2f sec ===",
         len(person_db),
+        pass2_elapsed,
     )
 
     # ── SAM2 export ────────────────────────────────────

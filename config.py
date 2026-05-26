@@ -14,9 +14,14 @@ SAM2_INPUT_PATH = OUTPUT_DIR / "sam2_input.json"
 
 # ─── InsightFace Buffalo ─────────────────────────────────
 INSIGHTFACE_MODEL_PACK = "buffalo_l"
-INSIGHTFACE_ALLOWED_MODULES = ["detection", "recognition"]
+# PASS1 detector용
+INSIGHTFACE_ALLOWED_MODULES = ["detection"]
 INSIGHTFACE_INPUT_SIZE = (640, 640)
 INSIGHTFACE_CONF_THRESH = 0.6
+# PASS2 recognizer용
+RECOGNIZER_MODEL_NAME = "w600k_r50.onnx"
+RECOGNIZER_INPUT_SIZE = (112, 112)
+
 # 환경변수 우선
 if "INSIGHTFACE_CTX_ID" in os.environ:
     INSIGHTFACE_CTX_ID = int(os.environ["INSIGHTFACE_CTX_ID"])

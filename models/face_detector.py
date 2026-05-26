@@ -15,7 +15,6 @@ class BaseFaceDetector(ABC):
     def detect(self, frame: np.ndarray) -> List[DetectionRecord]:
         ...
 
-
 class BuffaloFaceDetector(BaseFaceDetector):
     def __init__(
         self,
@@ -25,15 +24,10 @@ class BuffaloFaceDetector(BaseFaceDetector):
         ctx_id: int = 0,
         allowed_modules: list[str] | None = None,
     ):
-        try:
-            from insightface.app import FaceAnalysis
-        except ImportError as e:
-            raise ImportError(
-                "pip install insightface onnxruntime-gpu"
-            ) from e
+        from insightface.app import FaceAnalysis
 
         if allowed_modules is None:
-            allowed_modules = ["detection", "recognition"]
+            allowed_modules = ["detection"]
 
         self.app = FaceAnalysis(
             name=model_pack_name,
@@ -48,13 +42,10 @@ class BuffaloFaceDetector(BaseFaceDetector):
         self.conf_thresh = conf_thresh
 
     def detect(self, frame: np.ndarray) -> List[DetectionRecord]:
-
         faces = self.app.get(frame)
-
-        records: List[DetectionRecord] = []
+        records = []
 
         for face in faces:
-
             x1, y1, x2, y2 = face.bbox.tolist()
             score = float(face.det_score)
 
@@ -67,20 +58,13 @@ class BuffaloFaceDetector(BaseFaceDetector):
                 else None
             )
 
-            embedding = (
-                face.embedding.tolist()
-                if hasattr(face, "embedding")
-                and face.embedding is not None
-                else None
-            )
-
             records.append(
                 DetectionRecord(
                     frame_idx=-1,
                     bbox=[float(x1), float(y1), float(x2), float(y2)],
                     score=score,
                     kps=kps,
-                    embedding=embedding,
+                    embedding=None,
                 )
             )
 

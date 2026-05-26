@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 import logging
 import shutil
 from pathlib import Path
@@ -13,6 +14,9 @@ from sklearn.cluster import DBSCAN
 import config
 from db.schema import PersonDBEntry, TrackDBEntry
 from utils.io import load_json, save_json
+
+import cv2
+from models.face_recognizer import build_recognizer
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +46,50 @@ def run_pass2(
         for tid, entry in raw_track_db.items()
     }
 
-    valid_tracks: List[TrackDBEntry] = [
-        entry
-        for entry in track_db.values()
-        if entry.embedding is not None
-    ]
+    recognizer = build_recognizer(
+        model_pack_name=config.INSIGHTFACE_MODEL_PACK,
+        ctx_id=config.INSIGHTFACE_CTX_ID,
+    )
+
+    embedding_extract_time = 0.0
+    embedding_success = 0
+    embedding_fail = 0
+
+    valid_tracks: List[TrackDBEntry] = []
+
+    for entry in track_db.values():
+        if entry.repr_crop_path is None:
+            logger.warning("track %d: repr_crop_path 없음. embedding 추출 제외", entry.track_id)
+            continue
+
+        crop_path = Path(entry.repr_crop_path)
+
+        if not crop_path.exists():
+            logger.warning("track %d: crop 파일 없음: %s", entry.track_id, crop_path)
+            continue
+
+        crop = cv2.imread(str(crop_path))
+
+        if crop is None:
+            logger.warning("track %d: crop 읽기 실패: %s", entry.track_id, crop_path)
+            continue
+
+        t0 = time.perf_counter()
+
+        embedding = recognizer.get_embedding(crop)
+
+        embedding_extract_time += time.perf_counter() - t0
+
+        if embedding is None:
+            embedding_fail += 1
+            logger.warning("track %d: embedding 추출 실패", entry.track_id)
+            continue
+
+        embedding_success += 1
+
+        entry.embedding = embedding
+        track_db[entry.track_id].embedding = embedding
+        valid_tracks.append(entry)
 
     if not valid_tracks:
         logger.warning(
@@ -135,9 +178,13 @@ def run_pass2(
     )
 
     logger.info(
-        "PASS2 완료 | person 수=%d | 저장=%s",
-        len(person_db),
-        person_db_path,
+        (
+            "PASS2 embedding summary | "
+            "success=%d | fail=%d | avg_embedding=%.3fs"
+        ),
+        embedding_success,
+        embedding_fail,
+        embedding_extract_time / max(embedding_success, 1),
     )
 
     return person_db
