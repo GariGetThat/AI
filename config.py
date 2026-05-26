@@ -49,8 +49,8 @@ DBSCAN_MIN_SAMPLES = 1
 TOP_N = 2
 
 # ─── 대표 crop ───────────────────────────────────────────
-REPR_CROP_INTERVAL = 60
-REPR_CROP_MIN_SIZE = 50
+REPR_CROP_INTERVAL = 30
+REPR_CROP_MIN_SIZE = 40
 REPR_CROP_QUALITY = 90
 
 # ─── person post-processing ──────────────────────────────

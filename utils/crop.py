@@ -46,7 +46,7 @@ def crop_face_by_kps(
     if kps is None:
         if bbox is None:
             return None
-        return crop_face(frame, bbox, padding=0.25, min_size=min_size)
+        return crop_face(frame, bbox, padding=0.35, min_size=min_size)
 
     h, w = frame.shape[:2]
     pts = np.array(kps, dtype=np.float32)
@@ -62,7 +62,7 @@ def crop_face_by_kps(
     if bw <= 0 or bh <= 0:
         if bbox is None:
             return None
-        return crop_face(frame, bbox, padding=0.25, min_size=min_size)
+        return crop_face(frame, bbox, padding=0.35, min_size=min_size)
 
     size = int(max(bw, bh) * (1.0 + padding))
     cx = int((x1 + x2) / 2)
@@ -73,10 +73,20 @@ def crop_face_by_kps(
     nx2 = min(w, cx + size // 2)
     ny2 = min(h, cy + size // 2)
 
+    # keypoint crop이 너무 작으면 bbox crop으로 fallback
     if (nx2 - nx1) < min_size or (ny2 - ny1) < min_size:
-        return None
+        if bbox is None:
+            return None
+        return crop_face(frame, bbox, padding=0.35, min_size=min_size)
 
-    return frame[ny1:ny2, nx1:nx2].copy()
+    crop = frame[ny1:ny2, nx1:nx2].copy()
+
+    if crop is None or crop.size == 0:
+        if bbox is None:
+            return None
+        return crop_face(frame, bbox, padding=0.35, min_size=min_size)
+
+    return crop
 
 
 def save_crop(
