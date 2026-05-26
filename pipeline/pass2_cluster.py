@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-import time
 import logging
 import shutil
+import time
 from pathlib import Path
 from typing import Dict, List
 
+import cv2
 import numpy as np
 from sklearn.cluster import DBSCAN
 
 import config
 from db.schema import PersonDBEntry, TrackDBEntry
-from utils.io import load_json, save_json
-
-import cv2
 from models.face_recognizer import build_recognizer
+from utils.io import load_json, save_json
 
 logger = logging.getLogger(__name__)
 
@@ -59,25 +58,34 @@ def run_pass2(
 
     for entry in track_db.values():
         if entry.repr_crop_path is None:
-            logger.warning("track %d: repr_crop_path 없음. embedding 추출 제외", entry.track_id)
+            logger.warning(
+                "track %d: repr_crop_path 없음. embedding 추출 제외",
+                entry.track_id,
+            )
             continue
 
         crop_path = Path(entry.repr_crop_path)
 
         if not crop_path.exists():
-            logger.warning("track %d: crop 파일 없음: %s", entry.track_id, crop_path)
+            logger.warning(
+                "track %d: crop 파일 없음: %s",
+                entry.track_id,
+                crop_path,
+            )
             continue
 
         crop = cv2.imread(str(crop_path))
 
         if crop is None:
-            logger.warning("track %d: crop 읽기 실패: %s", entry.track_id, crop_path)
+            logger.warning(
+                "track %d: crop 읽기 실패: %s",
+                entry.track_id,
+                crop_path,
+            )
             continue
 
         t0 = time.perf_counter()
-
         embedding = recognizer.get_embedding(crop)
-
         embedding_extract_time += time.perf_counter() - t0
 
         if embedding is None:
@@ -92,9 +100,7 @@ def run_pass2(
         valid_tracks.append(entry)
 
     if not valid_tracks:
-        logger.warning(
-            "embedding이 있는 track이 없습니다. pass1에서 embedding 저장 여부를 확인하세요."
-        )
+        logger.warning("embedding을 추출한 track이 없습니다.")
         save_json({}, person_db_path)
         return {}
 
@@ -141,6 +147,13 @@ def run_pass2(
         person.end_frame = max(person.end_frame, entry.end_frame)
         person.total_frames += entry.duration
 
+    person_db = _merge_short_persons(
+        person_db=person_db,
+        track_db=track_db,
+        min_person_frames=config.MIN_PERSON_FRAMES,
+        merge_dist_thresh=config.PERSON_MERGE_SIM_THRESH,
+    )
+
     sorted_persons = sorted(
         person_db.values(),
         key=lambda p: p.total_frames,
@@ -165,6 +178,7 @@ def run_pass2(
             person.end_frame,
             person.is_main,
         )
+
     for person in person_db.values():
         best_track = _select_best_track_for_person(person, track_db)
 
@@ -202,7 +216,119 @@ def run_pass2(
         embedding_extract_time / max(embedding_success, 1),
     )
 
+    logger.info(
+        "PASS2 완료 | person 수=%d | 저장=%s",
+        len(person_db),
+        person_db_path,
+    )
+
     return person_db
+
+
+def _merge_short_persons(
+    person_db: Dict[str, PersonDBEntry],
+    track_db: Dict[int, TrackDBEntry],
+    min_person_frames: int,
+    merge_dist_thresh: float,
+) -> Dict[str, PersonDBEntry]:
+
+    long_persons = {
+        pid: p
+        for pid, p in person_db.items()
+        if p.total_frames >= min_person_frames
+    }
+
+    short_persons = {
+        pid: p
+        for pid, p in person_db.items()
+        if p.total_frames < min_person_frames
+    }
+
+    for short_pid, short_person in short_persons.items():
+        short_emb = _mean_embedding(short_person, track_db)
+
+        if short_emb is None:
+            logger.info("short person keep | %s | embedding 없음", short_pid)
+            long_persons[short_pid] = short_person
+            continue
+
+        best_pid = None
+        best_dist = float("inf")
+
+        for long_pid, long_person in long_persons.items():
+            long_emb = _mean_embedding(long_person, track_db)
+
+            if long_emb is None:
+                continue
+
+            dist = _cosine_distance(short_emb, long_emb)
+
+            if dist < best_dist:
+                best_dist = dist
+                best_pid = long_pid
+
+        if best_pid is not None and best_dist <= merge_dist_thresh:
+            target = long_persons[best_pid]
+
+            target.track_ids.extend(short_person.track_ids)
+            target.start_frame = min(target.start_frame, short_person.start_frame)
+            target.end_frame = max(target.end_frame, short_person.end_frame)
+            target.total_frames += short_person.total_frames
+
+            for tid in short_person.track_ids:
+                if tid in track_db:
+                    track_db[tid].person_id = best_pid
+
+            logger.info(
+                "short person merge | %s -> %s | cosine_dist=%.3f",
+                short_pid,
+                best_pid,
+                best_dist,
+            )
+        else:
+            logger.info(
+                "short person keep | %s | best=%s | cosine_dist=%.3f",
+                short_pid,
+                best_pid,
+                best_dist,
+            )
+            long_persons[short_pid] = short_person
+
+    return long_persons
+
+
+def _mean_embedding(
+    person: PersonDBEntry,
+    track_db: Dict[int, TrackDBEntry],
+) -> np.ndarray | None:
+
+    embs = []
+
+    for tid in person.track_ids:
+        if tid not in track_db:
+            continue
+
+        emb = track_db[tid].embedding
+
+        if emb is None:
+            continue
+
+        embs.append(emb)
+
+    if not embs:
+        return None
+
+    embs = np.array(embs, dtype=np.float32)
+    embs = _l2_normalize(embs)
+
+    mean_emb = np.mean(embs, axis=0, keepdims=True)
+    mean_emb = _l2_normalize(mean_emb)
+
+    return mean_emb.reshape(-1)
+
+
+def _cosine_distance(a: np.ndarray, b: np.ndarray) -> float:
+    return float(1.0 - np.dot(a, b))
 
 
 def _l2_normalize(x: np.ndarray) -> np.ndarray:
