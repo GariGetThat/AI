@@ -122,11 +122,19 @@ class ChunkProcessor:
                     # 청크 내 상대 프레임 인덱스 
                     prompt_frame = max(target["start_frame"], chunk_start)- chunk_start
 
+                    x1, y1, x2, y2 = active_boxes[obj_id]
+                    
+                    center_x = (x1+x2)//2
+                    center_y = (y1+y2)//2
+
                     self.predictor.add_new_points_or_box(
                         inference_state = state,
                         frame_idx = prompt_frame,
                         obj_id = obj_id,
                         box = active_boxes[obj_id],
+                        # box 중심 좌표 추가
+                        points=torch.tensor([[[center_x, center_y]]], dtype=torch.float32),
+                        labels=torch.tensor([[1]], dtype=torch.int32)
                     )
                     active_targets.append(target)
                 

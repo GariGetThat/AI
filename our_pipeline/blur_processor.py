@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 class BlurProcessor:
-    def __init__(self, blur_strength=11):
+    def __init__(self, blur_strength=31):
         self.blur_strength = blur_strength # 블러 강도 (홀수여야 함)
 
     def process(self, video_path, results, targets, output_path="output_video.avi"):

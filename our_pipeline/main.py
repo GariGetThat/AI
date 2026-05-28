@@ -22,7 +22,7 @@ results = processor.process(args.video, targets)
 
 # np.save("results.npy", results)
 
-blur = BlurProcessor(blur_strength=11)
+blur = BlurProcessor(blur_strength=31)
 blur.process(args.video, results, targets, output_path="output_video.avi")
 
 
