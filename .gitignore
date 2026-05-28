@@ -45,3 +45,5 @@ capstone/
 # 주피터 노트북 임시 파일
 .ipynb_checkpoints/
 *-checkpoint.ipynb
+
+*.egg-info/
