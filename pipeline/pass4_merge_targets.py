@@ -1,108 +1,124 @@
-# pipeline/export_for_sam2.py
+# pipeline/pass4_merge_targets.py
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import config
-from db.schema import PersonDBEntry, SAM2InputEntry, TrackDBEntry
 from utils.io import load_json, save_json
 
 logger = logging.getLogger(__name__)
 
 
-def export_for_sam2(
-    track_db_path: str | Path = config.TRACK_DB_PATH,
-    person_db_path: str | Path = config.PERSON_DB_PATH,
-    output_path: str | Path = config.SAM2_INPUT_PATH,
-    blur_main_person: bool = False,
-) -> List[SAM2InputEntry]:
+def _normalize_object_targets(raw_object_db: Any) -> List[Dict[str, Any]]:
     """
-    SAM2 입력 JSON 생성.
+    PASS3 object_db.json을 SAM2 target 형식으로 변환.
 
-    Parameters
-    ----------
-    blur_main_person:
-        False이면 Top-N 주요 인물은 blur 대상에서 제외.
-        True이면 주요 인물도 포함해서 전부 blur 대상.
+    기대 출력 형식:
+    {
+        "id": "...",
+        "type": "object" | "text" | ...,
+        "start_frame": int,
+        "end_frame": int,
+        "bbox": [x1, y1, x2, y2]
+    }
     """
 
-    track_db_path = Path(track_db_path)
-    person_db_path = Path(person_db_path)
-    output_path = Path(output_path)
+    targets = []
 
-    raw_track_db = load_json(track_db_path)
-    raw_person_db = load_json(person_db_path)
+    if raw_object_db is None:
+        return targets
 
-    track_db: Dict[int, TrackDBEntry] = {
-        int(tid): TrackDBEntry.from_dict(entry)
-        for tid, entry in raw_track_db.items()
-    }
+    if isinstance(raw_object_db, dict):
+        items = raw_object_db.get("tracks", raw_object_db.get("objects", raw_object_db))
+        if isinstance(items, dict):
+            items = list(items.values())
+    else:
+        items = raw_object_db
 
-    person_db: Dict[str, PersonDBEntry] = {
-        pid: PersonDBEntry.from_dict(entry)
-        for pid, entry in raw_person_db.items()
-    }
+    if not isinstance(items, list):
+        logger.warning("object_db 형식을 해석할 수 없습니다. object target을 건너뜁니다.")
+        return targets
 
-    blur_person_ids = _select_blur_person_ids(
-        person_db=person_db,
-        blur_main_person=blur_main_person,
-    )
-
-    sam2_inputs: List[SAM2InputEntry] = []
-
-    for track in track_db.values():
-        if track.person_id is None:
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
             continue
 
-        if track.person_id not in blur_person_ids:
-            continue
-
-        if not track.frames or not track.bboxes:
-            continue
-
-        start_frame = track.frames[0]
-        end_frame = track.frames[-1]
-        start_bbox = track.bboxes[0]
-
-        sam2_inputs.append(
-            SAM2InputEntry(
-                id=f"{track.person_id}_track_{track.track_id:04d}",
-                type="face",
-                start_frame=int(start_frame),
-                end_frame=int(end_frame),
-                bbox=[float(v) for v in start_bbox],
-            )
+        bbox = (
+            item.get("bbox")
+            or item.get("box")
+            or item.get("representative_box")
         )
 
-    save_json(
-        [entry.to_dict() for entry in sam2_inputs],
-        output_path,
-    )
+        if bbox is None or len(bbox) != 4:
+            continue
+
+        start_frame = item.get("start_frame", item.get("frame_index", item.get("frame", 0)))
+        end_frame = item.get("end_frame", start_frame)
+
+        label = item.get("label", item.get("type", "object"))
+        object_id = item.get("id", item.get("object_id", f"object_{idx:04d}"))
+
+        targets.append(
+            {
+                "id": str(object_id),
+                "type": str(label),
+                "start_frame": int(start_frame),
+                "end_frame": int(end_frame),
+                "bbox": [float(v) for v in bbox],
+            }
+        )
+
+    return targets
+
+
+def run_pass4(
+    face_targets_path: str | Path = config.SAM2_INPUT_PATH,
+    object_db_path: str | Path = config.OBJECT_DB_PATH,
+    output_path: str | Path = config.SAM2_TARGETS_PATH,
+) -> List[Dict[str, Any]]:
+    face_targets_path = Path(face_targets_path)
+    object_db_path = Path(object_db_path)
+    output_path = Path(output_path)
+
+    face_targets = []
+
+    if face_targets_path.exists():
+        face_targets = load_json(face_targets_path)
+    else:
+        logger.warning("face target 파일 없음: %s", face_targets_path)
+
+    raw_object_db = None
+
+    if object_db_path.exists():
+        raw_object_db = load_json(object_db_path)
+    else:
+        logger.warning("object db 파일 없음: %s", object_db_path)
+
+    object_targets = _normalize_object_targets(raw_object_db)
+
+    merged_targets = []
+
+    if isinstance(face_targets, list):
+        merged_targets.extend(face_targets)
+    else:
+        logger.warning("face target 형식이 list가 아닙니다.")
+
+    merged_targets.extend(object_targets)
+
+    save_json(merged_targets, output_path)
 
     logger.info(
-        "SAM2 input export 완료 | 대상 track 수=%d | 저장=%s",
-        len(sam2_inputs),
+        "PASS4 완료 | face=%d | object=%d | total=%d | 저장=%s",
+        len(face_targets) if isinstance(face_targets, list) else 0,
+        len(object_targets),
+        len(merged_targets),
         output_path,
     )
 
-    return sam2_inputs
-
-
-def _select_blur_person_ids(
-    person_db: Dict[str, PersonDBEntry],
-    blur_main_person: bool = False,
-) -> set[str]:
-    if blur_main_person:
-        return set(person_db.keys())
-
-    return {
-        person_id
-        for person_id, person in person_db.items()
-        if not person.is_main
-    }
+    return merged_targets
 
 
 if __name__ == "__main__":
@@ -111,4 +127,4 @@ if __name__ == "__main__":
         format="[%(levelname)s] %(name)s : %(message)s",
     )
 
-    export_for_sam2()
+    run_pass4()
