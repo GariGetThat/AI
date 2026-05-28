@@ -1,4 +1,15 @@
 # =========================
+# External source installs
+# =========================
+# SAM2:
+# git clone https://github.com/facebookresearch/sam2.git third_party/sam2
+# pip install -e third_party/sam2
+#
+# GroundingDINO:
+# git clone https://github.com/IDEA-Research/GroundingDINO.git third_party/GroundingDINO
+# pip install -e third_party/GroundingDINO
+
+# =========================
 # Core DL
 # =========================
 torch>=2.5.1
