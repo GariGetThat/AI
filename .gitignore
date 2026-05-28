@@ -6,3 +6,12 @@ __pycache__/
 *.jpg
 raw_tracks.json
 run_log.txt
+__pycache__/
+outputs/
+external/
+*.pth
+.ipynb_checkpoints/
+capstone/
+.venv/
+*.pyc
+.DS_Store
