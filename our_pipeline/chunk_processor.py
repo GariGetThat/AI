@@ -6,10 +6,10 @@ from sam2.build_sam import build_sam2_video_predictor
 class ChunkProcessor:
     def __init__(self, model_cfg, checkpoint, fps=25, chunk_seconds = 15):
         # build_sam2_video_predictor 가져다가 사용하기
-        self.predictor = build_sam2_video_predictor(model_cfg, checkpoint, device="cpu")
+        self.predictor = build_sam2_video_predictor(model_cfg, checkpoint, device="cuda")
         self.fps = fps
         self.chunk_size = fps * chunk_seconds # 375 프레임
-        self.predictor = self.predictor.float() 
+        # self.predictor = self.predictor.float() 
 
     # chunk frame만 읽고 SAM2 형식으로 반환
     # video_path = 영상 경로, start_frame ~ end_frame은 읽을 범위 
@@ -96,7 +96,7 @@ class ChunkProcessor:
                 break
 
             # with torch.inference_mode(), torch.autocast("cuda", dtype = torch.bfloat16) 
-            with torch.inference_mode():
+            with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
                 # init_state에 프레임 배열 직접 전달
                 state = self.predictor.init_state(
                     frames = frames,
