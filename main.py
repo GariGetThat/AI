@@ -20,9 +20,9 @@ import cv2
 import config
 from models.face_detector import build_detector
 from models.face_tracker import build_tracker
-from pipeline.pass1_detect_track import run_pass1
-from pipeline.pass2_cluster import run_pass2
-from pipeline.export_for_sam2 import export_for_sam2
+from AI.pipeline.pass1_face_detect_track import run_pass1
+from AI.pipeline.pass2_face_cluster import run_pass2
+from AI.pipeline.pass4_merge_targets import export_for_sam2
 
 
 logging.basicConfig(
