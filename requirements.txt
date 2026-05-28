@@ -1,9 +1,9 @@
 # =========================
 # External source installs
 # =========================
-# SAM2:
+# SAM2 (Mac 환경 전용 빌드 설정):
 # git clone https://github.com/facebookresearch/sam2.git third_party/sam2
-# pip install -e third_party/sam2
+# SAM2_BUILD_CUDA=0 pip install -e third_party/sam2
 #
 # GroundingDINO:
 # git clone https://github.com/IDEA-Research/GroundingDINO.git third_party/GroundingDINO
