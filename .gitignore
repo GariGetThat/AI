@@ -1,3 +1,11 @@
+debug_crops/
+debug_bbox_output_*.mp4
+*.mp4
+__pycache__/
+*.pyc
+*.jpg
+raw_tracks.json
+run_log.txt
 __pycache__/
 outputs/
 external/
