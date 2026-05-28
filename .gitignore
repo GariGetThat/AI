@@ -24,3 +24,10 @@ debug_boxes.avi
 capstone/
 **/capstone/*
 capstone/**/*
+
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+our_pipeline/
+*.egg-info/
