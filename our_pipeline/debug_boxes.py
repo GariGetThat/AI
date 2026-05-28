@@ -8,7 +8,7 @@ height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 out = cv2.VideoWriter('debug_boxes.avi', cv2.VideoWriter_fourcc(*'XVID'), fps, (width, height))
 
-with open('our_pipeline/targets.json') as f:
+with open('db/targets.json') as f:
     targets = json.load(f)
 
 frame_idx = 0
