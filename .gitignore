@@ -1,29 +1,49 @@
+# debug_crops/
+# debug_bbox_output_*.mp4
+# *.mp4
+# __pycache__/
+# *.pyc
+# *.jpg
+# raw_tracks.json
+# run_log.txt
+# __pycache__/
+# outputs/
+# external/
+# *.pth
+# .ipynb_checkpoints/
+# capstone/
+# .venv/
+# *.pyc
+# .DS_Store
+
 # 가상환경 및 OS 파일
-.venv
-.vscode/
+.venv/
 .DS_Store
 __pycache__/
 *.pyc
 *.pyo
-*.egg-info/
-build/
-_C.*
 
-# 영상 파일
-*.avi
-*.mp4
-*.dmg
-debug_boxes.avi
-test_video.avi
-results.npy
-
-# 딥러닝 체크포인트 (경로가 어디든 .pt, .pth 파일 차단)
+# 딥러닝 체크포인트 및 모델 파일 (확장자 + 경로 모두 차단)
 *.pt
 *.pth
 checkpoints/
 **/checkpoints/
+third_party/sam2/checkpoints/
 
-# 파이프라인 및 데이터 관련
+# 영상 및 디버그 데이터
+*.mp4
+*.avi
+*.jpg
+debug_crops/
+debug_bbox_output_*.mp4
+raw_tracks.json
+run_log.txt
 outputs/
+external/
 capstone/
-our_pipeline/
+
+# 주피터 노트북 임시 파일
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+*.egg-info/
