@@ -1,33 +1,29 @@
+# 가상환경 및 OS 파일
+.venv
 .vscode/
 .DS_Store
 __pycache__/
-*-checkpoint.ipynb
-.venv
-*.egg*
-build/*
-_C.*
-outputs/*
-checkpoints/*.pt
-demo/backend/checkpoints/*.pt
-results.npy
-test_video.avi
-
-# 영상 결과물 전용 (확장자가 avi, mp4인 모든 파일 제외)
-*.avi
-*.mp4
-
-# 맥 설치 파일 및 디버그 박스 영상 제외
-*.dmg
-debug_boxes.avi
-
-# 가상환경 완벽 차단 규칙
-capstone/
-**/capstone/*
-capstone/**/*
-
-__pycache__/
 *.pyc
 *.pyo
-.DS_Store
-our_pipeline/
 *.egg-info/
+build/
+_C.*
+
+# 영상 파일
+*.avi
+*.mp4
+*.dmg
+debug_boxes.avi
+test_video.avi
+results.npy
+
+# 딥러닝 체크포인트 (경로가 어디든 .pt, .pth 파일 차단)
+*.pt
+*.pth
+checkpoints/
+**/checkpoints/
+
+# 파이프라인 및 데이터 관련
+outputs/
+capstone/
+our_pipeline/
