@@ -6,7 +6,7 @@ from sam2.build_sam import build_sam2_video_predictor
 class ChunkProcessor:
     def __init__(self, model_cfg, checkpoint, fps=25, chunk_seconds = 15):
         # build_sam2_video_predictor 가져다가 사용하기
-        self.predictor = build_sam2_video_predictor(model_cfg, checkpoint, device="cuda")
+        self.predictor = build_sam2_video_predictor(model_cfg, checkpoint, device="mps")
         self.fps = fps
         self.chunk_size = fps * chunk_seconds # 375 프레임
         # self.predictor = self.predictor.float() 

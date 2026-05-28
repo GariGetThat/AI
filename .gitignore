@@ -11,3 +11,16 @@ checkpoints/*.pt
 demo/backend/checkpoints/*.pt
 results.npy
 test_video.avi
+
+# 영상 결과물 전용 (확장자가 avi, mp4인 모든 파일 제외)
+*.avi
+*.mp4
+
+# 맥 설치 파일 및 디버그 박스 영상 제외
+*.dmg
+debug_boxes.avi
+
+# 가상환경 완벽 차단 규칙
+capstone/
+**/capstone/*
+capstone/**/*

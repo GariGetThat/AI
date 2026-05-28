@@ -20,7 +20,7 @@ class BlurProcessor:
         # 출력 영상 설정
         out = cv2.VideoWriter(
             output_path,
-            cv2.VideoWriter_fourcc(*"XVID"), # avi 저장 형식
+            cv2.VideoWriter_fourcc(*"mp4v"), # avi 저장 형식
             fps,
             (int(video_width), int(video_height))  # int로 명시적 변환
         )

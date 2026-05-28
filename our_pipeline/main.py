@@ -15,7 +15,7 @@ with open(args.targets, "r") as f:
 
 processor = ChunkProcessor(
     model_cfg="configs/sam2.1/sam2.1_hiera_l.yaml", # 모델 구조 설정 파일
-    checkpoint="checkpoints/sam2.1_hiera_large.pt", # 학습된 가중치 파일 
+    checkpoint="checkpoints/sam2.1_hiera_large.pt", # 학습된 가중치 파일
 )
 
 results = processor.process(args.video, targets)
@@ -23,7 +23,7 @@ results = processor.process(args.video, targets)
 # np.save("results.npy", results)
 
 blur = BlurProcessor(blur_strength=31)
-blur.process(args.video, results, targets, output_path="output_video.avi")
+blur.process(args.video, results, targets, output_path="output_video.mp4")
 
 
 import numpy as np
