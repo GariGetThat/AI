@@ -1,7 +1,7 @@
 import torch 
 import cv2
 import numpy as np
-from SAM2.third_party.sam2.sam2.build_sam import build_sam2_video_predictor
+from third_party.sam2.sam2.build_sam import build_sam2_video_predictor
 
 class ChunkProcessor:
     def __init__(self, model_cfg, checkpoint, fps=25, chunk_seconds = 15):
@@ -96,7 +96,7 @@ class ChunkProcessor:
                 break
 
             # with torch.inference_mode(), torch.autocast("cuda", dtype = torch.bfloat16) 
-            with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.inference_mode():
                 # init_state에 프레임 배열 직접 전달
                 state = self.predictor.init_state(
                     frames = frames,
