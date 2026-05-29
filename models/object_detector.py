@@ -1139,7 +1139,7 @@ class PrivacyReasoningEngine:
                     "label": self.LABEL_DISPLAY_MAP.get(track.label, track.label),
                     "start_frame": int(track.start_frame),
                     "end_frame": int(track.end_frame),
-                    "box": track.representative_box(),
+                    "bbox": track.representative_box(),
                     "visible_text": track.representative_visible_text(),
                 }
             )

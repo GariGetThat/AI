@@ -67,7 +67,7 @@ def run_pass3(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     debug_crop_dir = output_dir / "debug_crops"
-    json_output_path = output_dir / "object_db.json"
+    json_output_path = config.OBJECT_DB_PATH
 
     engine = PrivacyReasoningEngine(
         qwen_model_name=config.OBJECT_QWEN_MODEL_NAME,
