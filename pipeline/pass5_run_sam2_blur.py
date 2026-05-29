@@ -1,8 +1,9 @@
-from SAM2.models.sam2.chunk_processor import ChunkProcessor
 import numpy as np
 import argparse
 import json
-from SAM2.models.sam2.blur_processor import BlurProcessor
+from models.sam2.chunk_processor import ChunkProcessor
+from third_party.sam2.sam2.build_sam import build_sam2_video_predictor
+from models.sam2.blur_processor import BlurProcessor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--video", type=str, required=True, help="영상 파일 경로") # 처리할 영상 경로 지정 옵션
@@ -14,8 +15,8 @@ with open(args.targets, "r") as f:
     targets = json.load(f)
 
 processor = ChunkProcessor(
-    model_cfg="configs/sam2.1/sam2.1_hiera_l.yaml", # 모델 구조 설정 파일
-    checkpoint="checkpoints/sam2.1_hiera_large.pt", # 학습된 가중치 파일
+    model_cfg="sam2.1/sam2.1_hiera_l.yaml",
+    checkpoint="checkpoints/sam2.1_hiera_large.pt",
 )
 
 results = processor.process(args.video, targets)

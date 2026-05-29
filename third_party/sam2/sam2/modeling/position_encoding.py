@@ -224,16 +224,19 @@ def apply_rotary_enc(
     freqs_cis = reshape_for_broadcast(freqs_cis, xq_)
     xq_out = torch.view_as_real(xq_ * freqs_cis).flatten(3)
     if xk_ is None:
-        # no keys to rotate, due to dropout
         return xq_out.type_as(xq).to(xq.device), xk
-    # repeat freqs along seq_len dim to match k seq_len
     if repeat_freqs_k:
-        r = xk_.shape[-2] // xq_.shape[-2]
-        if freqs_cis.is_cuda:
-            freqs_cis = freqs_cis.repeat(*([1] * (freqs_cis.ndim - 2)), r, 1)
+        if xk_.shape[-2] != xq_.shape[-2]:
+            # 크기가 다를 때 xk_ 크기에 맞게 padding
+            pad_size = xk_.shape[-2] - freqs_cis.shape[-2]
+            freqs_cis = torch.nn.functional.pad(freqs_cis, (0, 0, 0, pad_size))
         else:
-            # torch.repeat on complex numbers may not be supported on non-CUDA devices
-            # (freqs_cis has 4 dims and we repeat on dim 2) so we use expand + flatten
-            freqs_cis = freqs_cis.unsqueeze(2).expand(-1, -1, r, -1, -1).flatten(2, 3)
+            r = xk_.shape[-2] // xq_.shape[-2]
+            if freqs_cis.is_cuda or freqs_cis.device.type == "mps":
+                freqs_cis = freqs_cis.repeat(*([1] * (freqs_cis.ndim - 2)), r, 1)
+            else:
+                freqs_cis = freqs_cis.unsqueeze(2).expand(-1, -1, r, -1, -1).flatten(2, 3)
+    else:
+        freqs_cis = freqs_cis[:, :, :xk_.shape[-2], :]
     xk_out = torch.view_as_real(xk_ * freqs_cis).flatten(3)
     return xq_out.type_as(xq).to(xq.device), xk_out.type_as(xk).to(xk.device)
