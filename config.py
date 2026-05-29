@@ -45,3 +45,9 @@ OBJECT_MIN_GROUP_ITEMS = 1
 OBJECT_GROUP_X_GAP_RATIO = 1.6
 OBJECT_GROUP_Y_GAP_RATIO = 1.0
 OBJECT_MIN_QWEN_CROP_SIZE = 56
+
+# =========================
+# Pass4 Merge Targets
+# =========================
+SAM2_INPUT_PATH = OUTPUT_DIR / "sam2_input_face.json"
+SAM2_TARGETS_PATH = OUTPUT_DIR / "sam2_targets.json"
