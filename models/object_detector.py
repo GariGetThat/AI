@@ -1077,7 +1077,7 @@ class PrivacyReasoningEngine:
                 "id": t.object_id,
                 "start_frame": int(t.start_frame),
                 "end_frame": int(t.end_frame),
-                "box": t.representative_box(),
+                "bbox": t.representative_box(),
                 "visible_text": t.representative_visible_text(),
             })
         with open("raw_tracks.json", "w", encoding="utf-8") as f:
