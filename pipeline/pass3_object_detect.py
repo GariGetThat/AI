@@ -16,37 +16,45 @@ from PIL import Image
 import config
 
 def parse_args(project_root: Path) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="PrivacyReasoningEngine grouped-object video runner")
+    parser = argparse.ArgumentParser(
+        description="PASS3 Object Detection"
+    )
+
     parser.add_argument(
         "--video",
         type=str,
-        default=str(project_root / "test_input.mp4"),
-        help="테스트할 비디오 경로",
+        required=True,
+        help="입력 영상 경로",
     )
+
     parser.add_argument(
         "--prompt",
         type=str,
-        default="내 프라이버시가 유출될 만한 것들을 가려줘.",
+        default=config.OBJECT_DEFAULT_PROMPT,
         help="사용자 자연어 프롬프트",
     )
+
     parser.add_argument(
         "--sample-fps",
         type=float,
-        default=1.0,
+        default=config.OBJECT_SAMPLE_FPS,
         help="샘플링 FPS",
     )
+
     parser.add_argument(
         "--text-detector-lang",
         type=str,
-        default="korean",
+        default=config.OBJECT_TEXT_DETECTOR_LANG,
         help="PaddleOCR language option",
     )
+
     parser.add_argument(
         "--output-dir",
         type=str,
-        default=None,
-        help="결과물 저장 디렉토리 (기본값: project_root)",
+        default=str(config.OBJECT_OUTPUT_DIR),
+        help="object 결과 저장 디렉토리",
     )
+
     return parser.parse_args()
 
 def run_pass3(
