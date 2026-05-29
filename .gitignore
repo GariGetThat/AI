@@ -46,4 +46,4 @@ capstone/
 .ipynb_checkpoints/
 *-checkpoint.ipynb
 
-*.egg-info/
+*.egg-info/*.dmg
