@@ -1,12 +1,5 @@
 [
-    {
-        "id": "face_001",
-        "type": "face",
-        "start_frame": 0,
-        "end_frame": 700,
-        "box": [530, 180, 580, 220]
-    },
-    {
+  {
     "id": "object_002",
     "type": "object",
     "label": "기타 개인정보 텍스트",

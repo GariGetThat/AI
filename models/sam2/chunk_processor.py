@@ -9,7 +9,7 @@ class ChunkProcessor:
         self.predictor = build_sam2_video_predictor(model_cfg, checkpoint, device="mps")
         self.fps = fps
         self.chunk_size = fps * chunk_seconds # 375 프레임
-        # self.predictor = self.predictor.float() 
+        self.predictor = self.predictor.float() 
 
     # chunk frame만 읽고 SAM2 형식으로 반환
     # video_path = 영상 경로, start_frame ~ end_frame은 읽을 범위 
@@ -52,6 +52,11 @@ class ChunkProcessor:
         # mean, std 정규화 
         images -= img_mean
         images /= img_std
+
+        # MPS dtype 맞추기
+        if str(self.predictor.device) == "mps":
+            images = images.to(torch.float32)
+
 
         return images
     
