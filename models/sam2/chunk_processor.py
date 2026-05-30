@@ -2,11 +2,16 @@ import torch
 import cv2
 import numpy as np
 from third_party.sam2.sam2.build_sam import build_sam2_video_predictor
+import config
 
 class ChunkProcessor:
     def __init__(self, model_cfg, checkpoint, fps=25, chunk_seconds = 15):
         # build_sam2_video_predictor 가져다가 사용하기
-        self.predictor = build_sam2_video_predictor(model_cfg, checkpoint, device="mps")
+        self.predictor = build_sam2_video_predictor(
+            model_cfg,
+            checkpoint,
+            device=config.SAM2_DEVICE,
+        )
         self.fps = fps
         self.chunk_size = fps * chunk_seconds # 375 프레임
         self.predictor = self.predictor.float() 
@@ -44,6 +49,9 @@ class ChunkProcessor:
             frames.append(frame)
         
         cap.release()
+
+        if not frames:
+            return torch.empty(0)
 
         # 스택
         
@@ -146,7 +154,8 @@ class ChunkProcessor:
                 if not active_targets:
                     self.predictor.reset_state(state)
                     del state
-                    torch.cuda.empty_cache()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
                     continue
 
                 # propagate
@@ -178,6 +187,7 @@ class ChunkProcessor:
                 # 메모리 리셋
                 self.predictor.reset_state(state)
                 del state
-                torch.cuda.empty_cache()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
         return results

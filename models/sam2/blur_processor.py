@@ -49,7 +49,7 @@ class BlurProcessor:
                     
                     else:
                         # box 직접 블러
-                        x1, y1, x2, y2 = target["box"]
+                        x1, y1, x2, y2 = map(int, target["box"])
                         roi = frame[y1:y2, x1:x2]
                         if roi.size > 0:
                             frame[y1:y2, x1:x2] = cv2.GaussianBlur(roi, (self.blur_strength, self.blur_strength), 0)

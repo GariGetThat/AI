@@ -1,4 +1,4 @@
-# pipeline/pass1_detect_track.py
+# pipeline/pass1_face_detect_track.py
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# pipeline/pass2_cluster.py
+# pipeline/pass2_face_cluster.py
 
 from __future__ import annotations
 

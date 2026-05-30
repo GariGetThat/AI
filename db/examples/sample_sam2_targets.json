@@ -1,0 +1,27 @@
+[
+  {
+    "id": "person_001_track_0003",
+    "type": "face",
+    "start_frame": 10,
+    "end_frame": 134,
+    "box": [
+      1965.9,
+      398.6,
+      2138.4,
+      633.8
+    ]
+  },
+  {
+    "id": "object_001",
+    "type": "object",
+    "label": "개인정보 텍스트",
+    "start_frame": 0,
+    "end_frame": 390,
+    "box": [
+      137,
+      305,
+      179,
+      341
+    ]
+  }
+]

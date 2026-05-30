@@ -1,0 +1,14 @@
+[
+  {
+    "id": "person_001_track_0003",
+    "type": "face",
+    "start_frame": 10,
+    "end_frame": 134,
+    "bbox": [
+      1965.9,
+      398.6,
+      2138.4,
+      633.8
+    ]
+  }
+]

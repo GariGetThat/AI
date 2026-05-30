@@ -1,0 +1,14 @@
+{
+  "video": "demo_cap.mp4",
+  "targets": [
+    {
+      "id": "person_001",
+      "type": "face"
+    },
+    {
+      "id": "object_001",
+      "type": "object",
+      "label": "개인정보 텍스트"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "object_001",
+    "type": "object",
+    "label": "개인정보 텍스트",
+    "start_frame": 0,
+    "end_frame": 390,
+    "bbox": [
+      137,
+      305,
+      179,
+      341
+    ],
+    "visible_text": "108 인부사람 주화금지"
+  }
+]

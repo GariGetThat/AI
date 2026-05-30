@@ -1084,8 +1084,12 @@ class PrivacyReasoningEngine:
                 "bbox": t.representative_box(),
                 "visible_text": t.representative_visible_text(),
             })
-        with open("raw_tracks.json", "w", encoding="utf-8") as f:
+        
+        raw_debug_path = Path(output_json_path).parent / "raw_tracks.json"
+
+        with open(raw_debug_path, "w", encoding="utf-8") as f:
             _json.dump(raw_payload, f, ensure_ascii=False, indent=2)
+            
         print("[Debug] raw_tracks.json 저장 완료", flush=True)
         
         # IoU 기반 중복 트랙 제거
