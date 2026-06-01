@@ -1,8 +1,22 @@
 import torch 
 import cv2
 import numpy as np
-from third_party.sam2.sam2.build_sam import build_sam2_video_predictor
 import config
+
+# 기존 코드 제거 또는 주석 처리
+# from third_party.sam2.sam2.build_sam import ...
+
+# 프로젝트 루트를 기준으로 경로를 직접 지정하는 방법
+import sys
+from pathlib import Path
+
+# 현재 파일 기준으로 프로젝트 루트를 찾음
+project_root = Path(__file__).resolve().parent.parent.parent
+# SAM2 패키지 경로를 시스템 경로에 추가
+sys.path.append(str(project_root / "third_party" / "sam2"))
+
+# 이제 sam2를 최상위 패키지로 인식함
+from sam2.build_sam import build_sam2_video_predictor
 
 class ChunkProcessor:
     def __init__(self, model_cfg, checkpoint, fps=25, chunk_seconds = 15):
