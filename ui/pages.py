@@ -160,23 +160,7 @@ def landing_page() -> None:
     ]
     chip_row(chips)
 
-    st.markdown(
-        """
-        <div style="
-            margin-top:80px;
-            background:#E6E6E6;
-            padding:28px;
-            text-align:center;
-            color:#737373;
-            font-size:14px;
-        ">
-            ✓ 서버 업로드 없음 &nbsp;&nbsp; ✓ 로컬 처리 흐름 기반 &nbsp;&nbsp; ✓ 원본 파일 보호
-            <br>
-            <span style="font-size:12px;color:#B3B3B3;">Gari-Get-That • 맥락 이해 기반 프라이버시 보호 AI</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
 
 
 # ---------------------------------------------------------------------------
