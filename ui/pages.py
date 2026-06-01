@@ -181,7 +181,7 @@ def upload_page() -> None:
         section_label("① 영상 업로드")
         uploaded = st.file_uploader(
             "영상 파일을 드래그하거나 클릭하여 선택",
-            type=["mp4", "mov", "avi"],
+            type=["mp4"],
             label_visibility="collapsed",
         )
 
@@ -199,7 +199,7 @@ def upload_page() -> None:
 
             st.success(f"선택된 파일: {uploaded.name}")
         else:
-            st.markdown('<div class="small">MP4 · MOV · AVI</div>', unsafe_allow_html=True)
+            st.markdown('<div class="small">MP4</div>', unsafe_allow_html=True)
 
     with right:
         section_label("② 자연어 프롬프트 입력")
