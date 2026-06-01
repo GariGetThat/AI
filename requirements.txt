@@ -1,11 +1,4 @@
 # =========================
-# External source installs
-# =========================
-# SAM2 (Mac 환경 전용 빌드 설정):
-# git clone https://github.com/facebookresearch/sam2.git third_party/sam2
-# SAM2_BUILD_CUDA=0 pip install -e third_party/sam2
-
-# =========================
 # Core DL
 # =========================
 torch>=2.5.1
@@ -60,6 +53,12 @@ tqdm>=4.66.0
 pyyaml>=6.0.1
 jupyter>=1.0.0
 ipykernel>=6.29.0
+
+# =========================
+# SAM2 Runtime Dependencies
+# =========================
+hydra-core==1.3.2
+iopath==0.1.10
 
 # =========================
 # Optional UI
