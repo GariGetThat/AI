@@ -4,10 +4,6 @@
 # SAM2 (Mac 환경 전용 빌드 설정):
 # git clone https://github.com/facebookresearch/sam2.git third_party/sam2
 # SAM2_BUILD_CUDA=0 pip install -e third_party/sam2
-#
-# GroundingDINO:
-# git clone https://github.com/IDEA-Research/GroundingDINO.git third_party/GroundingDINO
-# pip install -e third_party/GroundingDINO
 
 # =========================
 # Core DL
@@ -53,7 +49,7 @@ huggingface_hub>=0.24.0,<1.0
 paddleocr>=2.8.1
 
 # =========================
-# Detection / Grounding
+# Detection Utilities
 # =========================
 pycocotools>=2.0.7
 

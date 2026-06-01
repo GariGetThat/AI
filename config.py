@@ -44,7 +44,7 @@ SAM2_TARGETS_PATH = OUTPUT_DIR / "sam2_targets.json"
 # ---------------------------------------------------------
 
 SAM2_ROOT = PROJECT_ROOT / "third_party" / "sam2"
-SAM2_MODEL_CFG = "configs/sam2.1/sam2.1_hiera_l.yaml"
+SAM2_MODEL_CFG = "sam2.1/sam2.1_hiera_l.yaml"
 SAM2_CHECKPOINT = SAM2_ROOT / "checkpoints" / "sam2.1_hiera_large.pt"
 
 FINAL_OUTPUT_VIDEO_PATH = OUTPUT_DIR / "output_video.mp4"
@@ -163,3 +163,11 @@ SAM2_DEVICE = DEVICE
 SAM2_FPS = 25
 SAM2_CHUNK_SECONDS = 15
 BLUR_STRENGTH = 31
+
+# =========================================================
+# Debug / Preview
+# =========================================================
+
+DETECTION_PREVIEW_DIR = OUTPUT_DIR / "debug" / "previews"
+FACE_PREVIEW_PATH = DETECTION_PREVIEW_DIR / "face_preview.jpg"
+OBJECT_PREVIEW_PATH = DETECTION_PREVIEW_DIR / "object_preview.jpg"

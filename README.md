@@ -1,6 +1,4 @@
-# Gari-Get-That
-
-## Privacy Guard AI
+# Gari-Get-That (Privacy Guard AI)
 
 **Automatic Video Privacy Protection Pipeline**
 
@@ -20,7 +18,7 @@ A privacy protection AI team focused on automatic video anonymization.
 
 # 프로젝트 개요
 
-Privacy Guard는 영상 내 개인정보 노출 문제를 해결하기 위한 자동 비식별화 시스템입니다.
+Gari-Get-That은 영상 내 개인정보 노출 문제를 해결하기 위한 자동 비식별화 시스템입니다.
 
 사용자가 영상을 입력하면 시스템은 다음 정보를 자동으로 탐지합니다.
 
@@ -199,7 +197,6 @@ AI
 │   └── output_video.mp4
 │
 └── third_party
-    ├── GroundingDINO
     └── sam2
 ```
 
@@ -251,7 +248,6 @@ pip install -r requirements.txt
 본 프로젝트는 아래 오픈소스를 내부적으로 포함합니다.
 
 * SAM2
-* GroundingDINO
 
 따라서 별도의 clone 작업은 필요하지 않습니다.
 
@@ -376,14 +372,6 @@ outputs/output_video.mp4
 ---
 
 # External Open Sources
-
-## GroundingDINO
-
-Object Detection Pipeline
-
-https://github.com/IDEA-Research/GroundingDINO
-
----
 
 ## SAM2
 
