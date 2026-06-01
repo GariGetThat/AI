@@ -112,6 +112,8 @@ class PrivacyReasoningEngine:
         "credit card": "신용카드",
         "receipt": "영수증",
         "address document": "주소 문서",
+        "waybill": "송장",
+        "road sign": "도로 표지판",
         "other private text": "기타 개인정보 텍스트",
         "other": "기타",
     }
