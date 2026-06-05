@@ -29,9 +29,16 @@ class BuffaloFaceDetector(BaseFaceDetector):
         if allowed_modules is None:
             allowed_modules = ["detection"]
 
+        providers = (
+            ["CoreMLExecutionProvider", "CPUExecutionProvider"]
+            if ctx_id >= 0
+            else ["CPUExecutionProvider"]
+        )
+
         self.app = FaceAnalysis(
             name=model_pack_name,
             allowed_modules=allowed_modules,
+            providers=providers,
         )
 
         self.app.prepare(

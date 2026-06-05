@@ -73,12 +73,9 @@ INSIGHTFACE_CONF_THRESH = 0.6
 RECOGNIZER_MODEL_NAME = "w600k_r50.onnx"
 RECOGNIZER_INPUT_SIZE = (112, 112)
 
-# Apple 서버 기준: 기본 CPU Provider 사용
-# 필요하면 환경변수로 덮어쓰기 가능
+# Apple 서버 기준: CoreMLExecutionProvider 사용
 if "INSIGHTFACE_CTX_ID" in os.environ:
     INSIGHTFACE_CTX_ID = int(os.environ["INSIGHTFACE_CTX_ID"])
-elif platform.system() == "Darwin":
-    INSIGHTFACE_CTX_ID = -1
 else:
     INSIGHTFACE_CTX_ID = 0
 

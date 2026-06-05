@@ -45,8 +45,14 @@ third_party/sam2/checkpoints/
 # Runtime Outputs
 # ==================================================
 
+inputs/
 outputs/
 *.mp4
+# 이미지 및 디버깅용 파일 제외
+*.jpg
+# 데모 및 테스트용 영상 파일 제외
+*.mp4capstone/
+
 
 # ==================================================
 # Temporary Debug Files
@@ -70,8 +76,3 @@ run_log.txt
 
 
 
-# 이미지 및 디버깅용 파일 제외
-*.jpg
-
-# 데모 및 테스트용 영상 파일 제외
-*.mp4capstone/

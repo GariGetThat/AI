@@ -38,7 +38,7 @@ class BuffaloFaceRecognizer:
             )
 
         providers = (
-            ["CUDAExecutionProvider", "CPUExecutionProvider"]
+            ["CoreMLExecutionProvider", "CPUExecutionProvider"]
             if ctx_id >= 0
             else ["CPUExecutionProvider"]
         )
