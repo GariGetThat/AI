@@ -413,7 +413,7 @@ def download_button_placeholder() -> None:
     st.button("⬇ 영상 다운로드")
 
 
-def next_button(label: str, next_page: str) -> None:
-    if st.button(label):
-        st.session_state.page = next_page
+def next_button(label, target_page, button_type="secondary"):
+    if st.button(label, type=button_type):
+        st.session_state.page = target_page
         st.rerun()

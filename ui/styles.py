@@ -164,18 +164,41 @@ def inject_global_styles() -> None:
             border: 1px solid var(--border);
         }
 
-        /* Upload */
-        div[data-testid="stFileUploader"] section {
-            background: var(--surface);
-            border: 1.5px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
+        /* Buttons */
+        .stButton > button {
+            background: #FFFFFF;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            height: 38px;
+            padding: 0 8px;
+            font-size: 10px;
+            font-weight: 500;
+            transition: all 0.15s ease;
         }
 
-        div[data-testid="stFileUploader"] button {
+        .stButton > button:hover {
+            background: var(--surface);
+            border: 1px solid var(--text);
+            color: var(--text);
+        }
+
+        /* Streamlit Primary Button */
+
+        .stButton > button[kind="primary"] {
             background: var(--primary);
             color: white;
+            border: none;
             border-radius: 8px;
+            height: 44px;
+            padding: 0 24px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .stButton > button[kind="primary"]:hover {
+            background: #111114;
+            color: white;
         }
 
         /* Inputs */

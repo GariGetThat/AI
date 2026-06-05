@@ -7,6 +7,9 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
 import config
 from pipeline.pass1_face_detect_track import run_pass1
 from pipeline.pass2_face_cluster import run_pass2
@@ -38,6 +41,23 @@ def save_uploaded_video(uploaded_file) -> Path:
 
     return video_path
 
+def put_korean_text(frame, text, position, font_size=22, color=(0, 255, 0)):
+    # Mac 기본 한글 폰트
+    font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
+
+    if not Path(font_path).exists():
+        font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+
+    image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(image)
+
+    font = ImageFont.truetype(font_path, font_size)
+
+    # PIL은 RGB 순서
+    rgb_color = (color[2], color[1], color[0])
+    draw.text(position, text, font=font, fill=rgb_color)
+
+    return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
 def run_detection_stage(
     video_path: str | Path,
@@ -169,14 +189,13 @@ def _save_box_preview(
         label = item.get("label") or item.get("id") or title
 
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cv2.putText(
-            frame,
-            str(label),
-            (x1, max(20, y1 - 8)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (0, 255, 0),
-            2,
+
+        frame = put_korean_text(
+            frame=frame,
+            text=str(label),
+            position=(x1, max(20, y1 - 26)),
+            font_size=20,
+            color=(0, 255, 0),
         )
 
     cv2.imwrite(str(output_path), frame)
