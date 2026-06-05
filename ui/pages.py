@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from textwrap import dedent
 
 import config
 import streamlit as st
@@ -26,7 +27,6 @@ from ui.components import (
     status_success,
     status_running,
     chip_row,
-    json_panel,
     target_item,
     preview_placeholder,
     detection_preview,
@@ -124,7 +124,7 @@ def landing_page() -> None:
                 font-weight:700;
                 margin-bottom:22px;
             ">
-                자연어 기반 · 병렬 탐지 · 통합 블러 — 맥락 이해 프라이버시 보호 AI
+                얼굴 및 개인정보 자동 탐지 · 원하는 인물 유지 · 영상 프라이버시 보호
             </div>
             <div style="
                 font-size:40px;
@@ -133,37 +133,50 @@ def landing_page() -> None:
                 color:#212121;
                 margin-bottom:18px;
             ">
-                자연어로 말하면, AI가 알아서 처리합니다
+                무엇을 가릴지 말해주면<br>
+                AI가 알아서 찾아 처리합니다
             </div>
             <div style="
                 font-size:15px;
                 color:#737373;
                 margin-bottom:28px;
             ">
-                얼굴과 간판·건물명·택배 정보까지 — 자연어 명령 하나로 병렬 탐지하고 단일 패스 마스크 생성 후 Gaussian Blur를 적용합니다.
+                얼굴, 차량번호, 간판, 건물명 등<br>
+                개인정보가 포함된 영역을 자동으로 찾아 안전하게 가려줍니다.
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if st.button("지금 시작하기 →", type="primary"):
-        st.session_state.page = "upload"
-        st.rerun()
+    st.markdown(
+        """
+        <div style="display:flex; justify-content:center; margin-top:4px; margin-bottom:36px;">
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    button_left, button_center, button_right = st.columns([2.2, 1, 2.2])
+    with button_center:
+        next_button(
+            "지금 시작하기",
+            "upload",
+            button_type="primary",
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown(
-        '<div style="text-align:center;color:#737373;font-size:12px;margin-bottom:18px;">AI 처리 6단계 흐름</div>',
+        '<div style="text-align:center;color:#737373;font-size:12px;margin-bottom:18px;">AI 처리 5단계 흐름</div>',
         unsafe_allow_html=True,
     )
 
     steps = [
-        ("①", "자연어 입력", "프롬프트 기반 명령"),
-        ("②", "병렬 탐지", "얼굴 + 객체 동시"),
-        ("③", "인물 선택", "블러 제외 설정"),
-        ("④", "적용 항목 확인", "블러 대상 검토"),
-        ("⑤", "결과 내보내기", "최종 영상 저장"),
+        ("①", "영상 업로드", "영상과 요청 입력"),
+        ("②", "AI 분석", "얼굴·개인정보 탐지"),
+        ("③", "인물 선택", "선명하게 유지할 인물 선택"),
+        ("④", "적용 항목 확인", "가려질 대상 확인"),
+        ("⑤", "결과 저장", "최종 영상 다운로드"),
     ]
 
     cols = st.columns(5)
@@ -172,7 +185,7 @@ def landing_page() -> None:
         with col:
             st.markdown(
                 f"""
-                <div style="height:96px;">
+                <div style="height:96px;text-align:left;">
                     <div style="font-size:11px;color:#808085;margin-bottom:10px;">{num}</div>
                     <div style="font-size:15px;font-weight:700;color:#26262B;margin-bottom:6px;">{title}</div>
                     <div style="font-size:11px;color:#808085;margin-bottom:18px;">{desc}</div>
@@ -190,14 +203,50 @@ def landing_page() -> None:
     )
 
     chips = [
-        "💬 프롬프트 입력",
-        "👤 얼굴 탐지",
-        "🔲 객체 탐지",
+        "💬 요청 입력",
+        "👤 얼굴 찾기",
+        "🔎 개인정보 영역 찾기",
         "🚫 인물 제외",
-        "🔀 JSON 통합",
-        "🌀 Gaussian Blur",
+        "🌀 자연스러운 블러",
     ]
-    chip_row(chips)
+
+    chips_html = "".join(
+        f"""
+        <span style="
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            border:1px solid #D1D1D6;
+            border-radius:18px;
+            padding:8px 14px;
+            margin:4px 5px;
+            font-size:13px;
+            color:#26262B;
+            background:white;
+            white-space:nowrap;
+        ">
+            {chip}
+        </span>
+        """
+        for chip in chips
+    )
+
+    st.markdown(
+        f"""
+        <div style="
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            flex-wrap:wrap;
+            gap:4px;
+            width:100%;
+            margin-top:4px;
+        ">
+            {chips_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -206,10 +255,10 @@ def landing_page() -> None:
 
 def upload_page() -> None:
     header()
-    step_badge(1, 5, "영상 업로드 + 자연어 입력", "분석 전 영상과 명령을 함께 입력합니다")
+    step_badge(1, 5, "영상 업로드", "영상과 가리고 싶은 내용을 입력합니다")
     page_title(
-        "영상과 명령을 함께 입력하고 분석을 시작하세요",
-        "영상 파일과 자연어 프롬프트를 동시에 입력하면 AI가 병렬 탐지를 바로 시작합니다.",
+        "영상을 업로드하고, 가리고 싶은 내용을 입력하세요",
+        "AI가 영상을 분석해 얼굴과 개인정보가 포함된 영역을 찾아줍니다.",
     )
 
     left, right = st.columns([1, 1.08], gap="large")
@@ -235,16 +284,16 @@ def upload_page() -> None:
 
             st.success(f"선택된 파일: {uploaded.name}")
         else:
-            st.markdown('<div class="small">MP4</div>', unsafe_allow_html=True)
+            st.markdown('<div class="small">지원 형식: MP4</div>', unsafe_allow_html=True)
 
     with right:
-        section_label("② 자연어 프롬프트 입력")
+        section_label("② 가릴 내용 입력")
         prompt = st.text_area(
-            "자연어로 무엇을 보호할지 자유롭게 입력하세요",
+            "영상에서 어떤 부분을 가릴지 입력하세요",
             value=st.session_state.get("prompt", ""),
             height=116,
             label_visibility="collapsed",
-            placeholder="예: 집 위치 유추될 만한 건 다 가려줘",
+            placeholder="예: 집 위치를 알 수 있는 정보는 모두 가려줘",
         )
         st.session_state.prompt = prompt
 
@@ -259,7 +308,7 @@ def upload_page() -> None:
             }
             </style>
             """, unsafe_allow_html=True)
-        section_label("💡 명령 예시")
+        section_label("💡 요청 예시")
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -273,7 +322,7 @@ def upload_page() -> None:
 
         with col2:
             if st.button(
-                "건물명·택배정보 \n가려줘",
+                "건물명·택배정보\n가려줘",
                 use_container_width=True,
                 key="ex_delivery"
             ):
@@ -282,7 +331,7 @@ def upload_page() -> None:
 
         with col3:
             if st.button(
-                "사람 빼고 전부 \n가려줘",
+                "사람 빼고 전부\n가려줘",
                 use_container_width=True,
                 key="ex_all"
             ):
@@ -297,25 +346,25 @@ def upload_page() -> None:
         st.markdown(
             f"""
             <div class="white-card">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px;">분석 준비 상태</div>
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px;">준비 상태</div>
                 <div style="height:1px;background:#D1D1D6;margin-bottom:10px;"></div>
-                <div style="font-size:12px;color:#808085;">{'●' if video_ready else '○'} 영상 파일 <span style="float:right;">{'완료' if video_ready else '대기 중'}</span></div>
-                <div style="font-size:12px;color:#808085;margin-top:8px;">{'●' if prompt_ready else '○'} 자연어 명령 <span style="float:right;">{'완료' if prompt_ready else '대기 중'}</span></div>
+                <div style="font-size:12px;color:#808085;">{'●' if video_ready else '○'} 영상 파일 <span style="float:right;">{'선택 완료' if video_ready else '대기 중'}</span></div>
+                <div style="font-size:12px;color:#808085;margin-top:8px;">{'●' if prompt_ready else '○'} 가릴 내용 <span style="float:right;">{'입력 완료' if prompt_ready else '대기 중'}</span></div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
     st.markdown("<hr>", unsafe_allow_html=True)
-    hint_box("영상 업로드 + 프롬프트 입력 후 분석이 시작됩니다")
+    hint_box("영상과 요청 내용을 입력하면 AI 분석을 시작할 수 있습니다.")
 
-    if st.button("분석 시작 →", type="primary"):
+    if st.button("AI 분석 시작 →", type="primary"):
         if not st.session_state.get("video_path"):
             st.warning("먼저 영상 파일을 선택해주세요.")
             return
 
         if not st.session_state.get("prompt", "").strip():
-            st.warning("자연어 명령을 입력해주세요.")
+            st.warning("가리고 싶은 내용을 입력해주세요.")
             return
 
         st.session_state.page = "detect"
@@ -335,19 +384,28 @@ def detection_progress_page() -> None:
         return
 
     header()
-    step_badge(2, 5, "병렬 탐지 진행", "얼굴 + 객체 동시 탐지")
+    step_badge(2, 5, "AI 분석", "영상 속 얼굴과 개인정보 영역을 찾습니다")
     page_title(
-        "원본 영상에서 얼굴과 개인정보 객체를 동시에 탐지합니다",
-        "얼굴 탐지와 개인정보 객체 탐지를 실행하고, 결과를 다음 단계에서 확인합니다.",
+        "영상 속 얼굴과 개인정보를 찾고 있습니다",
+        "얼굴, 간판, 건물명, 차량번호 등 가려야 할 수 있는 영역을 분석합니다.",
     )
 
     if not st.session_state.get("detection_done", False):
-        status_running("Face Loop + Object Loop 실행 중 — 얼굴 및 개인정보 객체 탐지")
+        status_running("AI가 영상 속 얼굴과 개인정보 영역을 분석하고 있습니다")
 
-        progress_bar = st.progress(0, text="탐지를 시작합니다...")
+        progress_bar = st.progress(0, text="분석을 시작합니다...")
 
         def update_progress(pct: int, msg: str) -> None:
-            progress_bar.progress(pct, text=msg)
+            user_msg = msg
+
+            if "얼굴" in msg:
+                user_msg = "얼굴이 등장하는 구간을 찾고 있습니다..."
+            elif "객체" in msg or "텍스트" in msg:
+                user_msg = "간판, 건물명, 차량번호 등 개인정보 영역을 찾고 있습니다..."
+            elif "완료" in msg:
+                user_msg = "분석이 완료되었습니다."
+
+            progress_bar.progress(pct, text=user_msg)
 
         try:
             run_detection_stage(
@@ -359,13 +417,13 @@ def detection_progress_page() -> None:
             st.error(f"파일 오류: {e}")
             return
         except Exception as e:
-            st.error(f"탐지 중 오류가 발생했습니다: {e}")
+            st.error(f"분석 중 오류가 발생했습니다: {e}")
             return
 
         st.session_state.detection_done = True
         st.rerun()
 
-    status_success("탐지 완료 — 인물 선택 단계로 이동할 수 있습니다")
+    status_success("분석 완료 — 이제 선명하게 유지할 인물을 선택할 수 있습니다")
 
     person_db = load_person_db()
     face_count = len(person_db)
@@ -377,10 +435,11 @@ def detection_progress_page() -> None:
         st.markdown(
             """
             <div style="font-size:14px;font-weight:700;margin-bottom:6px;">
-                탐지 결과 준비 완료
+                분석 결과가 준비되었습니다
             </div>
             <div class="page-desc" style="margin-bottom:18px;">
-                얼굴 후보와 개인정보 객체 후보가 생성되었습니다. 다음 단계에서 블러 제외 인물을 선택합니다.
+                영상에서 얼굴과 개인정보가 포함될 수 있는 영역을 찾았습니다.
+                다음 단계에서 선명하게 유지할 인물을 선택할 수 있습니다.
             </div>
             """,
             unsafe_allow_html=True,
@@ -389,16 +448,16 @@ def detection_progress_page() -> None:
         col1, col2 = st.columns(2, gap="large")
 
         with col1:
-            st.markdown("**Face Loop**")
+            st.markdown("**얼굴 분석 결과**")
             st.markdown(
-                '<div class="small">SCRFD + ByteTrack + DBSCAN</div>',
+                '<div class="small">영상에 등장한 인물 후보를 찾았습니다</div>',
                 unsafe_allow_html=True,
             )
 
             if config.FACE_PREVIEW_PATH.exists():
                 st.image(
                     str(config.FACE_PREVIEW_PATH),
-                    caption="Face detection preview",
+                    caption="영상에 등장한 인물 후보를 찾았습니다",
                     use_container_width=True,
                 )
             else:
@@ -407,9 +466,9 @@ def detection_progress_page() -> None:
             st.markdown(
                 f"""
                 <div class="white-card" style="margin-top:10px;">
-                    <div style="font-size:13px;font-weight:500;">👤 탐지된 인물</div>
+                    <div style="font-size:13px;font-weight:500;">👤 찾은 인물</div>
                     <div class="small">{face_count}명 · person_db.json</div>
-                    <div class="small">SCRFD + ByteTrack + DBSCAN</div>
+                    <div class="small">다음 단계에서 블러 제외 대상을 선택할 수 있습니다.</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -463,18 +522,18 @@ def person_select_page() -> None:
         return
 
     header()
-    step_badge(3, 5, "인물 선택", "블러 제외 설정")
+    step_badge(3, 5, "인물 선택", "선명 유지 대상 설정")
     page_title(
-        "중요 인물은 선명하게, 나머지는 자동 블러",
-        "선택한 인물은 블러 처리에서 제외됩니다. 나머지 인물과 탐지된 개인정보 객체는 모두 자동 처리됩니다.",
+        "선명하게 유지할 인물을 선택해주세요",
+        "선택한 인물은 원본 그대로 유지되고, 나머지 인물과 개인정보는 자동으로 가려집니다.",
     )
 
     st.markdown(
         """
         <div class="hint-box">
-            <span style="color:#2E994D;font-weight:500;">📌 선택 인물 = 블러 제외 (선명 유지)</span>
+            <span style="color:#2E994D;font-weight:500;">📌 선택한 인물은 선명하게 유지됩니다</span>
             <span style="color:#D1D1D6;margin:0 24px;">|</span>
-            <span style="color:#B34040;font-weight:500;">나머지 인물 + 탐지 객체 = 자동 블러 처리</span>
+            <span style="color:#B34040;font-weight:500;">선택하지 않은 인물과 개인정보는 자동으로 가려집니다</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -518,7 +577,6 @@ def person_select_page() -> None:
             }
         )
 
-    # 3명 이하: 3열 / 4명 이상: 4열 기준으로 자동 줄바꿈
     columns_per_row = 3 if len(people) <= 3 else 4
 
     for row_start in range(0, len(people), columns_per_row):
@@ -560,7 +618,7 @@ def person_select_page() -> None:
 
                     if selected:
                         if st.button(
-                            "블러 제외 해제",
+                            "선명 유지 해제",
                             key=f"unselect_{person['person_id']}",
                             use_container_width=True,
                         ):
@@ -568,10 +626,10 @@ def person_select_page() -> None:
                             invalidate_after_person_selection_change()
                             st.rerun()
 
-                        st.caption(f"✓ {person['person_id']} 블러 제외")
+                        st.caption("✓ 선명하게 유지됨")
                     else:
                         if st.button(
-                            "블러 제외",
+                            "선명하게 유지",
                             key=f"select_{person['person_id']}",
                             use_container_width=True,
                         ):
@@ -579,7 +637,7 @@ def person_select_page() -> None:
                             invalidate_after_person_selection_change()
                             st.rerun()
 
-                        st.caption("블러 적용 예정")
+                        st.caption("가려질 예정")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -592,62 +650,64 @@ def person_select_page() -> None:
     ]
     blur_text = ", ".join(blur_people) if blur_people else "없음"
 
-    st.markdown(
-        f"""
-        <div class="card">
-            <div style="font-size:12px;font-weight:700;margin-bottom:8px;">선택 요약</div>
-            <div style="font-size:13px;color:#2E994D;">✓ {selected_text} → 블러 제외 (선명 유지)</div>
-            <div style="font-size:13px;color:#B34040;margin-top:8px;">✕ {blur_text} + 탐지 객체 → 자동 블러 처리</div>
-            <div class="small" style="margin-top:8px;">선택 결과는 다음 단계의 블러 적용 항목에 반영됩니다.</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+        st.markdown(
+            f"""
+    <div style="padding:8px 0 2px 0;">
+    <div style="font-size:14px;font-weight:700;color:#26262B;margin-bottom:26px;">선택 결과</div>
+    <div style="font-size:13px;color:#2E994D;margin-bottom:6px;">✓ 선명하게 유지</div>
+    <div class="small" style="margin-bottom:18px;">{selected_text}</div>
+    <div style="font-size:13px;color:#B34040;margin-bottom:6px;">✓ 자동으로 가려짐</div>
+    <div class="small" style="margin-bottom:18px;">{blur_text} 및 개인정보 항목</div>
+    <div class="small">이 설정은 다음 단계에 적용됩니다.</div>
+    </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     next_button(
-        "다음: 자동 블러 처리 →",
+        "다음: 적용 내용 확인 →",
         "merged",
         button_type="primary",
     )
 
-
 # ---------------------------------------------------------------------------
-# 페이지: 통합 결과
+# 페이지: 적용 내용 확인
 # ---------------------------------------------------------------------------
 
 def merged_result_page() -> None:
     if not st.session_state.get("detection_done"):
-        st.warning("먼저 탐지 단계를 완료해주세요.")
-        if st.button("탐지 화면으로 이동"):
+        st.warning("먼저 영상 분석을 완료해주세요.")
+        if st.button("분석 화면으로 이동"):
             st.session_state.page = "detect"
             st.rerun()
         return
 
     if "exclude_person_ids" not in st.session_state:
-        st.warning("먼저 블러 제외 인물을 선택해주세요.")
+        st.warning("먼저 선명하게 유지할 인물을 선택해주세요.")
         if st.button("인물 선택 화면으로 이동"):
             st.session_state.page = "select"
             st.rerun()
         return
 
     header()
-    step_badge(4, 5, "블러 적용 항목 확인", "선택 인물 제외 기준으로 처리 대상을 정리합니다")
+    step_badge(4, 5, "적용 내용 확인", "가려질 항목을 미리 확인합니다")
     page_title(
-        "블러 처리될 항목을 확인하세요",
-        "선택한 인물은 제외하고, 나머지 얼굴과 개인정보 객체가 블러 대상에 포함됩니다.",
+        "가려질 항목을 확인해주세요",
+        "선명하게 유지할 인물을 제외하고, 자동으로 가려질 얼굴과 개인정보 항목을 정리했습니다.",
     )
 
     if not st.session_state.get("merge_done", False):
         exclude_ids = set(st.session_state.get("exclude_person_ids", []))
 
-        with st.spinner("블러 적용 항목을 정리하는 중입니다..."):
+        with st.spinner("가려질 항목을 정리하는 중입니다..."):
             try:
                 targets = run_face_export_and_merge(exclude_ids)
             except FileNotFoundError as e:
                 st.error(f"파일 오류: {e}")
                 return
             except Exception as e:
-                st.error(f"통합 결과 생성 중 오류가 발생했습니다: {e}")
+                st.error(f"적용 내용 생성 중 오류가 발생했습니다: {e}")
                 return
 
         st.session_state.merge_done = True
@@ -658,16 +718,16 @@ def merged_result_page() -> None:
 
     face_targets = [t for t in targets if t.get("type") == "face"]
     object_targets = [t for t in targets if t.get("type") != "face"]
-    exclude_ids = st.session_state.get("exclude_person_ids", [])
+    keep_ids = st.session_state.get("exclude_person_ids", [])
 
     st.markdown(
         f"""
         <div class="white-card">
-            <div style="font-size:15px;font-weight:700;margin-bottom:10px;">🧾 블러 적용 영수증</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:10px;">🧾 적용 내용 요약</div>
             <div style="height:1px;background:#D1D1D6;margin-bottom:12px;"></div>
-            <div class="small">블러 제외 인물 <b style="float:right;color:#26262B;">{len(exclude_ids)}명</b></div>
-            <div class="small" style="margin-top:12px;">블러 적용 얼굴 <b style="float:right;color:#26262B;">{len(face_targets)}개</b></div>
-            <div class="small" style="margin-top:12px;">블러 적용 객체/텍스트 <b style="float:right;color:#26262B;">{len(object_targets)}개</b></div>
+            <div class="small">선명하게 유지할 인물 <b style="float:right;color:#26262B;">{len(keep_ids)}명</b></div>
+            <div class="small" style="margin-top:12px;">가려질 얼굴 <b style="float:right;color:#26262B;">{len(face_targets)}개</b></div>
+            <div class="small" style="margin-top:12px;">가려질 개인정보 항목 <b style="float:right;color:#26262B;">{len(object_targets)}개</b></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -678,51 +738,67 @@ def merged_result_page() -> None:
     left, right = st.columns([1, 1], gap="large")
 
     with left:
-        st.markdown("### 👤 블러 적용 얼굴")
+        st.markdown("### 👤 가려질 얼굴")
         if face_targets:
             for target in face_targets:
                 target_item(
                     target.get("id", "unknown"),
                     "얼굴",
                     "blue",
-                    meta="선택 인물 제외 후 블러 대상",
+                    meta="선명 유지 대상에서 제외된 얼굴",
                 )
         else:
-            st.info("블러 처리할 얼굴 대상이 없습니다.")
+            st.info("가려질 얼굴이 없습니다.")
 
     with right:
-        st.markdown("### 🔲 블러 적용 객체/텍스트")
+        st.markdown("### 🔲 가려질 개인정보")
         if object_targets:
             for target in object_targets:
                 label = target.get("label") or target.get("id", "unknown")
                 visible_text = target.get("visible_text", "")
 
-                meta = "box 포함"
+                meta = "자동 감지된 개인정보 항목"
                 if visible_text:
-                    meta = f"인식 텍스트: {visible_text}"
+                    meta = f"인식된 텍스트: {visible_text}"
 
                 target_item(
                     label,
-                    "객체/텍스트",
+                    "개인정보",
                     "red",
                     meta=meta,
                 )
         else:
-            st.info("블러 처리할 객체/텍스트 대상이 없습니다.")
+            st.info("가려질 개인정보 항목이 없습니다.")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown(
         """
         <div class="hint-box">
-            선택한 인물은 선명하게 유지되고, 위 항목만 SAM2 마스크 생성 및 Gaussian Blur 처리에 사용됩니다.
+            위 항목들은 다음 단계에서 자동으로 가려집니다. 선명하게 유지할 인물을 바꾸고 싶다면 이전 단계로 돌아갈 수 있습니다.
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    next_button("다음: 자동 블러 처리 →", "blur", button_type="primary")
+    col1, col2 = st.columns([1, 1])
 
+    with col1:
+        if st.button(
+            "← 인물 다시 선택하기",
+            use_container_width=True,
+        ):
+            st.session_state.page = "select"
+            st.rerun()
+
+    with col2:
+        if st.button(
+            "다음: 자동으로 가리기 →",
+            type="primary",
+            use_container_width=True,
+        ):
+            st.session_state.page = "blur"
+            st.rerun()
 
 # ---------------------------------------------------------------------------
 # 페이지: 최종 결과 확인 및 내보내기
@@ -730,41 +806,49 @@ def merged_result_page() -> None:
 
 def blur_result_page() -> None:
     if not st.session_state.get("merge_done"):
-        st.warning("먼저 통합 결과를 생성해주세요.")
-        if st.button("통합 결과 화면으로 이동"):
+        st.warning("먼저 적용 내용을 확인해주세요.")
+        if st.button("적용 내용 확인 화면으로 이동"):
             st.session_state.page = "merged"
             st.rerun()
         return
 
     header()
-    step_badge(5, 5, "최종 결과", "블러 처리 완료 및 내보내기")
-    page_title(
-        "블러 처리 결과를 확인하고 영상을 내보냅니다",
-        "최종 결과 영상을 확인한 뒤 다운로드하거나 새 영상을 편집할 수 있습니다.",
-    )
 
     if not st.session_state.get("blur_done", False):
-        with st.spinner("SAM2 마스크 생성 및 Gaussian Blur를 적용하는 중입니다..."):
+        step_badge(5, 5, "개인정보 보호 처리 중", "선택 항목 자동 가림")
+        page_title(
+            "영상을 안전하게 처리하고 있습니다",
+            "선택한 인물은 선명하게 유지하고, 나머지 얼굴과 개인정보 항목은 자동으로 가립니다.",
+        )
+    else:
+        step_badge(5, 5, "최종 결과", "처리 완료 및 영상 내보내기")
+        page_title(
+            "처리된 영상을 확인하고 내보내세요",
+            "개인정보 보호 처리가 완료된 영상을 확인한 뒤 다운로드하거나 새 영상을 편집할 수 있습니다.",
+        )
+
+    if not st.session_state.get("blur_done", False):
+        with st.spinner("개인정보 보호 처리를 적용하는 중입니다..."):
             try:
                 output_video_path = run_blur_stage(st.session_state.video_path)
             except (FileNotFoundError, ValueError) as e:
                 st.error(f"설정 오류: {e}")
-                st.info("이전 단계부터 다시 실행해주세요.")
+                st.info("이전 단계부터 다시 진행해주세요.")
                 return
             except Exception as e:
-                st.error(f"블러 처리 중 예상치 못한 오류가 발생했습니다: {e}")
+                st.error(f"영상 처리 중 예상치 못한 오류가 발생했습니다: {e}")
                 return
 
         st.session_state.output_video_path = str(output_video_path)
         st.session_state.blur_done = True
         st.rerun()
 
-    status_success("블러 처리 완료 — 결과를 확인할 수 있습니다")
+    status_success("처리 완료 — 결과 영상을 확인할 수 있습니다")
 
     targets = st.session_state.get("merged_targets") or load_sam2_targets()
     face_count = sum(1 for target in targets if target.get("type") == "face")
     object_count = len(targets) - face_count
-    exclude_count = len(st.session_state.get("exclude_person_ids", []))
+    keep_count = len(st.session_state.get("exclude_person_ids", []))
 
     left, right = st.columns([2.2, 0.85], gap="large")
 
@@ -774,20 +858,20 @@ def blur_result_page() -> None:
         if output_path and Path(output_path).exists():
             st.video(output_path)
         else:
-            preview_placeholder("블러 처리된 영상 미리보기")
+            preview_placeholder("처리된 영상 미리보기")
 
     with right:
         st.markdown(
             f"""
             <div class="card">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px;">처리 상태</div>
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px;">처리 결과 요약</div>
                 <div style="height:1px;background:#D1D1D6;margin-bottom:10px;"></div>
-                <div class="small">👤 얼굴 BBox <b style="float:right;color:#26262B;">{face_count}개</b></div>
-                <div class="small" style="margin-top:14px;">🔲 객체 BBox <b style="float:right;color:#26262B;">{object_count}개</b></div>
-                <div class="small" style="margin-top:14px;">🚫 제외 인물 <b style="float:right;color:#26262B;">{exclude_count}명</b></div>
+                <div class="small">가려진 얼굴 <b style="float:right;color:#26262B;">{face_count}개</b></div>
+                <div class="small" style="margin-top:14px;">가려진 개인정보 항목 <b style="float:right;color:#26262B;">{object_count}개</b></div>
+                <div class="small" style="margin-top:14px;">선명하게 유지한 인물 <b style="float:right;color:#26262B;">{keep_count}명</b></div>
                 <div style="height:1px;background:#D1D1D6;margin:20px 0 10px;"></div>
-                <div class="small" style="color:#2E994D;font-weight:500;">✓ SAM2 마스크 생성 완료</div>
-                <div class="small" style="color:#2E994D;font-weight:500;margin-top:12px;">✓ Gaussian Blur 단일 패스 완료</div>
+                <div class="small" style="color:#2E994D;font-weight:500;">✓ 보호 영역 자동 감지 완료</div>
+                <div class="small" style="color:#2E994D;font-weight:500;margin-top:12px;">✓ 영상 처리 완료</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -806,7 +890,7 @@ def blur_result_page() -> None:
             font-size:12px;
             font-weight:500;
         ">
-            🧠 SAM2 통합 마스크 생성 → Gaussian Blur 단일 패스 | 선택 인물은 마스크에서 제외됩니다
+            선택한 인물은 선명하게 유지되고, 가려야 할 얼굴과 개인정보 항목만 자동으로 처리되었습니다.
         </div>
         """,
         unsafe_allow_html=True,
@@ -839,6 +923,7 @@ def blur_result_page() -> None:
             st.session_state.page = "upload"
             st.rerun()
 
+            
 # ---------------------------------------------------------------------------
 # 라우터
 # ---------------------------------------------------------------------------
