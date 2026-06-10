@@ -17,6 +17,7 @@ from ui.pipeline_adapter import (
     run_face_export_and_merge,
     load_sam2_targets,
     run_blur_stage,
+    validate_keep_people_removed_from_targets,
 )
 from ui.components import (
     header,
@@ -719,6 +720,22 @@ def merged_result_page() -> None:
     face_targets = [t for t in targets if t.get("type") == "face"]
     object_targets = [t for t in targets if t.get("type") != "face"]
     keep_ids = st.session_state.get("exclude_person_ids", [])
+
+    validation_result = validate_keep_people_removed_from_targets(
+        keep_person_ids=set(keep_ids),
+        targets=targets,
+    )
+
+    if validation_result["ok"]:
+        st.success("OK: 선명하게 유지할 인물은 최종 블러 대상에서 제외되었습니다.")
+    else:
+        st.error("ERROR: 선명하게 유지할 인물이 최종 블러 대상에 포함되어 있습니다.")
+
+        with st.expander("문제 대상 확인"):
+            for error in validation_result["errors"]:
+                st.markdown(f"**문제 인물:** `{error['person_id']}`")
+                for target in error["matched_targets"]:
+                    st.json(target)
 
     st.markdown(
         f"""
