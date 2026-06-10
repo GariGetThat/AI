@@ -174,31 +174,63 @@ def _save_box_preview(
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    frame_idx = int(boxes[0].get("frame_idx", boxes[0].get("start_frame", 0)))
-    frame = _read_frame(video_path, frame_idx)
-
-    if frame is None:
-        return
+    preview_images = []
 
     for item in boxes:
         box = item.get("bbox") or item.get("box")
         if box is None:
             continue
 
+        frame_idx = int(item.get("frame_idx", item.get("start_frame", 0)))
+        frame = _read_frame(video_path, frame_idx)
+
+        if frame is None:
+            continue
+
+        h, w = frame.shape[:2]
+
         x1, y1, x2, y2 = map(int, box)
+        x1 = max(0, min(x1, w - 1))
+        x2 = max(0, min(x2, w - 1))
+        y1 = max(0, min(y1, h - 1))
+        y2 = max(0, min(y2, h - 1))
+
+        if x2 <= x1 or y2 <= y1:
+            continue
+
         label = item.get("label") or item.get("id") or title
 
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
         frame = put_korean_text(
             frame=frame,
-            text=str(label),
+            text=f"{label} | frame {frame_idx}",
             position=(x1, max(20, y1 - 26)),
             font_size=20,
             color=(0, 255, 0),
         )
 
-    cv2.imwrite(str(output_path), frame)
+        frame = cv2.resize(frame, (320, 180))
+        preview_images.append(frame)
+
+    if not preview_images:
+        return
+
+    while len(preview_images) < 2:
+        preview_images.append(np.zeros_like(preview_images[0]))
+
+    rows = []
+    for i in range(0, len(preview_images), 2):
+        row_imgs = preview_images[i:i + 2]
+
+        if len(row_imgs) == 1:
+            row_imgs.append(np.zeros_like(row_imgs[0]))
+
+        rows.append(np.hstack(row_imgs))
+
+    grid = np.vstack(rows)
+
+    cv2.imwrite(str(output_path), grid)
 
 
 def create_face_preview(video_path: str | Path) -> None:
@@ -214,13 +246,15 @@ def create_face_preview(video_path: str | Path) -> None:
             if not frames or not bboxes:
                 continue
 
-            mid = min(len(frames), len(bboxes)) // 2
+            idx = 0
+            if idx >= min(len(frames), len(bboxes)):
+                continue
 
             boxes.append(
                 {
                     "id": f"track_{track_id}",
-                    "frame_idx": frames[mid],
-                    "bbox": bboxes[mid],
+                    "frame_idx": frames[idx],
+                    "bbox": bboxes[idx],
                     "label": f"face_{track_id}",
                 }
             )
@@ -242,6 +276,12 @@ def create_object_preview(video_path: str | Path) -> None:
 
     if isinstance(object_db, list):
         for obj in object_db:
+            start_frame = int(obj.get("start_frame", 0))
+            end_frame = int(obj.get("end_frame", start_frame))
+
+            if start_frame == end_frame:
+                continue
+
             box = obj.get("bbox") or obj.get("box")
             if box is None:
                 continue
@@ -249,13 +289,13 @@ def create_object_preview(video_path: str | Path) -> None:
             boxes.append(
                 {
                     "id": obj.get("id", "object"),
-                    "frame_idx": obj.get("start_frame", 0),
+                    "frame_idx": start_frame,
                     "bbox": box,
                     "label": obj.get("label", "object"),
                 }
             )
 
-            if len(boxes) >= 5:
+            if len(boxes) >= 6:
                 break
 
     _save_box_preview(
