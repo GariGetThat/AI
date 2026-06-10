@@ -97,6 +97,26 @@ def resolve_person_image_path(person: dict) -> Path | None:
 
     return None
 
+def format_person_display_name(person_id: str) -> str:
+    if person_id.startswith("person_"):
+        number = person_id.replace("person_", "").lstrip("0")
+
+        if number.isdigit():
+            return f"인물 {number}"
+
+    return person_id
+
+
+def format_face_target_display_name(target_id: str) -> str:
+    if target_id.startswith("person_"):
+        try:
+            number = target_id.split("_")[1].lstrip("0")
+            return f"인물 {number}"
+        except Exception:
+            pass
+
+    return target_id
+
 
 # ---------------------------------------------------------------------------
 # 페이지: 랜딩
@@ -571,7 +591,7 @@ def person_select_page() -> None:
         people.append(
             {
                 "person_id": person_id,
-                "name": person_id,
+                "name": format_person_display_name(person_id),
                 "duration": f"{total_frames} frames",
                 "image_path": resolve_person_image_path(person),
             }
@@ -642,13 +662,21 @@ def person_select_page() -> None:
     st.markdown("<br>", unsafe_allow_html=True)
 
     exclude_person_ids = st.session_state.get("exclude_person_ids", [])
-    selected_text = ", ".join(exclude_person_ids) if exclude_person_ids else "없음"
+    selected_text = (
+        ", ".join(format_person_display_name(pid) for pid in exclude_person_ids)
+        if exclude_person_ids
+        else "없음"
+    )
     blur_people = [
         person["person_id"]
         for person in people
         if person["person_id"] not in exclude_person_ids
     ]
-    blur_text = ", ".join(blur_people) if blur_people else "없음"
+    blur_text = (
+        ", ".join(format_person_display_name(pid) for pid in blur_people)
+        if blur_people
+        else "없음"
+    )
 
     with st.container(border=True):
         st.markdown(
@@ -741,8 +769,11 @@ def merged_result_page() -> None:
         st.markdown("### 👤 가려질 얼굴")
         if face_targets:
             for target in face_targets:
+                target_id = target.get("id", "unknown")
+                display_name = format_face_target_display_name(target_id)
+
                 target_item(
-                    target.get("id", "unknown"),
+                    display_name,
                     "얼굴",
                     "blue",
                     meta="선명 유지 대상에서 제외된 얼굴",
