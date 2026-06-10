@@ -119,6 +119,49 @@ def load_object_db() -> list[Any]:
         return []
     return load_json(config.OBJECT_DB_PATH)
 
+def validate_keep_people_removed_from_targets(
+    keep_person_ids: set[str],
+    targets: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """
+    선명하게 유지하기로 선택한 인물이
+    최종 SAM2 targets에 포함되어 있는지 검사합니다.
+
+    규칙:
+    - keep_person_ids에 있는 인물은 sam2_targets.json에 없어야 함
+    - 있으면 ERROR
+    """
+
+    errors = []
+    ok_items = []
+
+    face_targets = [
+        target for target in targets
+        if target.get("type") == "face"
+    ]
+
+    for person_id in keep_person_ids:
+        matched_targets = [
+            target for target in face_targets
+            if person_id in str(target.get("id", ""))
+        ]
+
+        if matched_targets:
+            errors.append(
+                {
+                    "person_id": person_id,
+                    "matched_targets": matched_targets,
+                }
+            )
+        else:
+            ok_items.append(person_id)
+
+    return {
+        "ok": len(errors) == 0,
+        "ok_items": ok_items,
+        "errors": errors,
+    }
+
 
 def run_face_export_and_merge(exclude_person_ids: set[str]) -> list[dict[str, Any]]:
     if not config.TRACK_DB_PATH.exists():
