@@ -1141,7 +1141,9 @@ class PrivacyReasoningEngine:
         payload: List[Dict] = []
         for track in tracks:
             if track.start_frame == track.end_frame:
-                track.end_frame = track.start_frame + 10
+                print(f"[Filter] {track.object_id} start==end({track.start_frame}), 제외", flush=True)
+                continue
+
             payload.append(
                 {
                     "id": track.object_id,
