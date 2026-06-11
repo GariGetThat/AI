@@ -984,8 +984,8 @@ class PrivacyReasoningEngine:
             for track_id in track_ids:
                 track = self.active_tracks[track_id]
                 # 라벨이 달라도 위치(IoU)가 겹치면 같은 객체로 인정
-                # if track.label != det.label:
-                #    continue
+                if track.label != det.label:
+                   continue
 
                 iou = self.compute_iou(track.last_box, det.box)
 
