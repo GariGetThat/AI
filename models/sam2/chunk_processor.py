@@ -154,15 +154,46 @@ class ChunkProcessor:
                     center_x = (x1+x2)//2
                     center_y = (y1+y2)//2
 
-                    self.predictor.add_new_points_or_box(
-                        inference_state = state,
-                        frame_idx = prompt_frame,
-                        obj_id = obj_id,
-                        box = active_boxes[obj_id],
-                        # box 중심 좌표 추가
-                        points=torch.tensor([[[center_x, center_y]]], dtype=torch.float32),
-                        labels=torch.tensor([[1]], dtype=torch.int32)
-                    )
+                    # self.predictor.add_new_points_or_box(
+                    #     inference_state = state,
+                    #     frame_idx = prompt_frame,
+                    #     obj_id = obj_id,
+                    #     box = active_boxes[obj_id],
+                    #     # box 중심 좌표 추가
+                    #     points=torch.tensor([[[center_x, center_y]]], dtype=torch.float32),
+                    #     labels=torch.tensor([[1]], dtype=torch.int32)
+                    # )
+
+                    if target["type"] == "face":
+                        x1, y1, x2, y2 = active_boxes[obj_id]
+                        
+                        # 음수 좌표만 clipping
+                        x1 = max(0, x1)
+                        y1 = max(0, y1)
+                        x2 = min(video_width, x2)
+                        y2 = min(video_height, y2)
+                        
+                        center_x = (x1 + x2) // 2
+                        center_y = (y1 + y2) // 2
+                        
+                        self.predictor.add_new_points_or_box(
+                            inference_state=state,
+                            frame_idx=prompt_frame,
+                            obj_id=obj_id,
+                            box=[x1, y1, x2, y2],
+                            points=torch.tensor([[[center_x, center_y]]], dtype=torch.float32),
+                            labels=torch.tensor([[1]], dtype=torch.int32)
+                        )
+                    else:
+                        # object: box + center point 유지
+                        self.predictor.add_new_points_or_box(
+                            inference_state=state,
+                            frame_idx=prompt_frame,
+                            obj_id=obj_id,
+                            box=active_boxes[obj_id],
+                            points=torch.tensor([[[center_x, center_y]]], dtype=torch.float32),
+                            labels=torch.tensor([[1]], dtype=torch.int32)
+                        )
                     active_targets.append(target)
                 
                 if not active_targets:

@@ -328,7 +328,7 @@ class PrivacyReasoningEngine:
         self,
         video_path: str,
         user_prompt: str = "내 프라이버시가 유출될 만한 것들을 가려줘.",
-        sample_fps: float = 1.0,
+        sample_fps: float = 4.0,
     ) -> List[TrackState]:
         print("[Start] process_video 시작", flush=True)
         print(f"[Start] video_path = {video_path}", flush=True)
@@ -1172,9 +1172,9 @@ class PrivacyReasoningEngine:
         OBJECT_MIN_DURATION_FRAMES = 16     # 단발 탐지도 최소 약 0.67초 유지
 
         for track in tracks:
-            # if track.start_frame == track.end_frame:
-            #     print(f"[Filter] {track.object_id} start==end({track.start_frame}), 제외", flush=True)
-            #     continue
+            if track.start_frame == track.end_frame:
+                print(f"[Filter] {track.object_id} start==end({track.start_frame}), 제외", flush=True)
+                continue
             start_frame = max(0, int(track.start_frame) - OBJECT_PRE_ROLL_FRAMES)
             end_frame = max(int(track.end_frame), start_frame + OBJECT_MIN_DURATION_FRAMES)
 

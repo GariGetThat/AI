@@ -42,17 +42,28 @@ class BlurProcessor:
                     
                     if target["type"] == "face":
                         # SAM2 마스크로 블러
-                        binary_mask = (mask[0] > 0.8).astype(np.uint8)
+                        binary_mask = (mask[0] > 0).astype(np.uint8)
                         binary_mask_3ch = np.stack([binary_mask]*3, axis=-1)
                         blurred = cv2.GaussianBlur(frame, (self.blur_strength, self.blur_strength), 0)
                         frame = np.where(binary_mask_3ch == 1, blurred, frame).astype(np.uint8)
                     
                     else:
-                        # box 직접 블러
-                        x1, y1, x2, y2 = map(int, target["box"])
-                        roi = frame[y1:y2, x1:x2]
-                        if roi.size > 0:
-                            frame[y1:y2, x1:x2] = cv2.GaussianBlur(roi, (self.blur_strength, self.blur_strength), 0)
+                        # SAM2 마스크에서 현재 프레임 box 추출
+                        binary_mask = (mask[0] > 0).astype(np.uint8)
+                        rows = np.any(binary_mask, axis=1)
+                        cols = np.any(binary_mask, axis=0)
+                        if rows.any() and cols.any():
+                            y1, y2 = np.where(rows)[0][[0, -1]]
+                            x1, x2 = np.where(cols)[0][[0, -1]]
+                            roi = frame[y1:y2, x1:x2]
+                            if roi.size > 0:
+                                frame[y1:y2, x1:x2] = cv2.GaussianBlur(roi, (self.blur_strength, self.blur_strength), 0)
+                        else:
+                            # 마스크가 없으면 원본 box 사용
+                            x1, y1, x2, y2 = map(int, target["box"])
+                            roi = frame[y1:y2, x1:x2]
+                            if roi.size > 0:
+                                frame[y1:y2, x1:x2] = cv2.GaussianBlur(roi, (self.blur_strength, self.blur_strength), 0)
 
             out.write(frame)
             frame_idx += 1
