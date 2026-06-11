@@ -674,7 +674,7 @@ class PrivacyReasoningEngine:
                     max_group_area = frame_w * frame_h * 0.15
                     if (gx2 - gx1) * (gy2 - gy1) > max_group_area:
                         break
-                    if (close_x and close_y) or overlaps or within_band:
+                    if (close_x and close_y) or overlaps:
                         current_group.append(it)
                         used[j] = True
                         changed = True
@@ -960,8 +960,37 @@ class PrivacyReasoningEngine:
                 #    continue
 
                 iou = self.compute_iou(track.last_box, det.box)
-                if iou >= self.track_iou_threshold:
-                    candidate_pairs.append((iou, det_idx, track_id))
+
+                # IoU가 낮아도 카메라 이동/각도 변화로 같은 객체일 수 있으므로
+                # 중심점 거리와 시간 간격을 함께 사용해 track을 연결한다.
+                tx1, ty1, tx2, ty2 = track.last_box
+                dx1, dy1, dx2, dy2 = det.box
+
+                track_cx = (tx1 + tx2) / 2.0
+                track_cy = (ty1 + ty2) / 2.0
+                det_cx = (dx1 + dx2) / 2.0
+                det_cy = (dy1 + dy2) / 2.0
+
+                center_dist = ((track_cx - det_cx) ** 2 + (track_cy - det_cy) ** 2) ** 0.5
+
+                track_w = max(1, tx2 - tx1)
+                track_h = max(1, ty2 - ty1)
+                det_w = max(1, dx2 - dx1)
+                det_h = max(1, dy2 - dy1)
+
+                avg_diag = (
+                    ((track_w ** 2 + track_h ** 2) ** 0.5)
+                    + ((det_w ** 2 + det_h ** 2) ** 0.5)
+                ) / 2.0
+
+                center_threshold = max(120.0, avg_diag * 0.8)
+
+                is_same_by_iou = iou >= self.track_iou_threshold
+                is_same_by_center = center_dist <= center_threshold
+
+                if is_same_by_iou or is_same_by_center:
+                    score = iou + max(0.0, 1.0 - center_dist / max(1.0, center_threshold))
+                    candidate_pairs.append((score, det_idx, track_id))
 
         candidate_pairs.sort(key=lambda x: x[0], reverse=True)
 
@@ -1139,10 +1168,16 @@ class PrivacyReasoningEngine:
         print(f"[Debug] 중복 제거 후 트랙 수: {len(tracks)}", flush=True)
 
         payload: List[Dict] = []
+        OBJECT_PRE_ROLL_FRAMES = 8  # 24fps 기준 약 0.33초
+        OBJECT_MIN_DURATION_FRAMES = 16     # 단발 탐지도 최소 약 0.67초 유지
+
         for track in tracks:
-            if track.start_frame == track.end_frame:
-                print(f"[Filter] {track.object_id} start==end({track.start_frame}), 제외", flush=True)
-                continue
+            # if track.start_frame == track.end_frame:
+            #     print(f"[Filter] {track.object_id} start==end({track.start_frame}), 제외", flush=True)
+            #     continue
+            start_frame = max(0, int(track.start_frame) - OBJECT_PRE_ROLL_FRAMES)
+            end_frame = max(int(track.end_frame), start_frame + OBJECT_MIN_DURATION_FRAMES)
+
 
             payload.append(
                 {

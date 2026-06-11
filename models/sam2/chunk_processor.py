@@ -180,6 +180,9 @@ class ChunkProcessor:
                     for obj_id, mask in zip(obj_ids, masks):
                         target = next(t for t in targets if t["id"] == obj_id)
 
+                        # target 시간 범위 밖의 mask는 저장하지 않음
+                        if abs_frame < target["start_frame"]:
+                            continue
                         # end_frame 지난 객체는 box 저장 안 함
                         if abs_frame > target["end_frame"]:
                             continue
