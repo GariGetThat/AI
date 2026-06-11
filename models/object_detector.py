@@ -243,28 +243,56 @@ class PrivacyReasoningEngine:
     # -------------------------------------------------------------------------
     # Prompt helpers
     # -------------------------------------------------------------------------
+    # def build_privacy_reason_prompt(
+    #     self,
+    #     user_prompt: str,
+    #     visible_text: str,
+    # ) -> str:
+    #     return (
+    #     "You are deciding whether a text group and its surrounding object should be privacy-blurred.\n"
+    #     f"User request: {user_prompt}\n"
+    #     f"Visible text from the grouped region:\n{visible_text}\n"
+    #     "Decide based on the visible text and obvious visible context only.\n"
+    #     "If this grouped region likely belongs to a privacy-sensitive object such as a receipt, waybill(delivery label with name/address/phone number), address label, card, ID document, license plate, or other personal text-bearing object, answer yes. Road signs, subtitles, and brand logos are NOT privacy-sensitive.\n"
+    #     "Short noisy fragments such as a single digit or random short token alone are not enough unless the overall grouped region strongly suggests a sensitive object.\n"
+    #     "If any part of the grouped region likely contains privacy-sensitive information, treat the whole grouped object as blur-worthy.\n"
+    #     "You MUST return exactly three lines in this order, do NOT skip or merge any line:\n"
+    #     "Decision: yes or no\n"
+    #     "Label: receipt | waybill | credit card | driver's license | license plate | road sign | address document | other private text | other\n"
+    #     "Reason: <one short sentence>\n"
+    #     "Example output:\n"
+    #     "Decision: yes\n"
+    #     "Label: waybill\n"
+    #     "Reason: Contains name, address and phone number typical of a delivery label.\n"
+    # )
+
     def build_privacy_reason_prompt(
         self,
         user_prompt: str,
         visible_text: str,
     ) -> str:
         return (
-        "You are deciding whether a text group and its surrounding object should be privacy-blurred.\n"
-        f"User request: {user_prompt}\n"
-        f"Visible text from the grouped region:\n{visible_text}\n"
-        "Decide based on the visible text and obvious visible context only.\n"
-        "If this grouped region likely belongs to a privacy-sensitive object such as a receipt, waybill(delivery label with name/address/phone number), address label, card, ID document, license plate, or other personal text-bearing object, answer yes. Road signs, subtitles, and brand logos are NOT privacy-sensitive.\n"
-        "Short noisy fragments such as a single digit or random short token alone are not enough unless the overall grouped region strongly suggests a sensitive object.\n"
-        "If any part of the grouped region likely contains privacy-sensitive information, treat the whole grouped object as blur-worthy.\n"
-        "You MUST return exactly three lines in this order, do NOT skip or merge any line:\n"
-        "Decision: yes or no\n"
-        "Label: receipt | waybill | credit card | driver's license | license plate | road sign | address document | other private text | other\n"
-        "Reason: <one short sentence>\n"
-        "Example output:\n"
-        "Decision: yes\n"
-        "Label: waybill\n"
-        "Reason: Contains name, address and phone number typical of a delivery label.\n"
-    )
+            "You are a privacy protection AI. Decide if this region must be blurred.\n"
+            f"User request: {user_prompt}\n"
+            f"Visible text: {visible_text}\n\n"
+            "BLUR if the region contains:\n"
+            "- Personal ID numbers, resident registration numbers\n"
+            "- Credit/debit card numbers or cardholder names\n"
+            "- Full name + address + phone number combination (waybill/delivery label)\n"
+            "- Driver's license or ID document with personal info\n"
+            "- License plate numbers\n"
+            "- Bank account numbers\n\n"
+            "DO NOT BLUR:\n"
+            "- Product labels, food packaging, brand logos\n"
+            "- Road signs, store signs, subtitles\n"
+            "- Generic printed text without personal info\n"
+            "- Single words or short fragments without context\n\n"
+            "You MUST return exactly three lines:\n"
+            "Decision: yes or no\n"
+            "Label: receipt | waybill | credit card | driver's license | "
+            "license plate | road sign | address document | other private text | other\n"
+            "Reason: <one short sentence>\n"
+        )
 
     # -------------------------------------------------------------------------
     # Qwen helpers
