@@ -85,8 +85,8 @@ else:
 
 BYTETRACK_TRACK_THRESH = 0.5
 BYTETRACK_HIGH_THRESH = 0.6
-BYTETRACK_MATCH_THRESH = 0.7
-BYTETRACK_MAX_TIME_LOST = 90
+BYTETRACK_MATCH_THRESH = 0.9
+BYTETRACK_MAX_TIME_LOST = 5
 
 # =========================================================
 # Track Filtering
