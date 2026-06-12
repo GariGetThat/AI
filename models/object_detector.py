@@ -134,7 +134,7 @@ class PrivacyReasoningEngine:
 
     def __init__(
         self,
-        qwen_model_name: str = "Qwen/Qwen2-VL-2B-Instruct",
+        qwen_model_name: str = "Qwen/Qwen2-VL-7B-Instruct",
         device: Optional[str] = None,
         crop_margin_ratio: float = 0.35,
         max_new_tokens_reason: int = 48,
@@ -218,7 +218,7 @@ class PrivacyReasoningEngine:
             lang=text_detector_lang,
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
-            use_textline_orientation=False,
+            use_textline_orientation=True,
         )
         self._log("PaddleOCR detector+recognizer 로딩 완료")
 
@@ -477,12 +477,36 @@ class PrivacyReasoningEngine:
         height, width = frame_bgr.shape[:2]
         frame_area = float(width * height)
 
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        raw_results = self.text_detector.predict(frame_rgb)
+        # frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        # raw_results = self.text_detector.predict(frame_rgb)
 
-        items = self.extract_text_items_from_predict_results(raw_results, frame_index)
+        # items = self.extract_text_items_from_predict_results(raw_results, frame_index)
+
+        # 멀티스케일 OCR: 원본 + 50% 축소
+        all_items = []
+        for scale in [1.0, 0.5]:
+            if scale != 1.0:
+                resized = cv2.resize(frame_bgr, (int(width * scale), int(height * scale)))
+                frame_rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+            else:
+                frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+
+            raw_results = self.text_detector.predict(frame_rgb)
+            items = self.extract_text_items_from_predict_results(raw_results, frame_index)
+
+            if scale != 1.0:
+                for item in items:
+                    item.x1 = int(item.x1 / scale)
+                    item.y1 = int(item.y1 / scale)
+                    item.x2 = int(item.x2 / scale)
+                    item.y2 = int(item.y2 / scale)
+
+            all_items.extend(items)
+
+        items = all_items
 
         filtered_items: List[OCRTextItem] = []
+
         for item in items:
             x1, y1, x2, y2 = item.box
             box_w = max(1, x2 - x1)
@@ -525,6 +549,9 @@ class PrivacyReasoningEngine:
             avg_score = float(sum(item.score for item in group_items) / max(1, len(group_items)))
 
             if self.group_text_is_too_weak(merged_text, len(group_items)):
+                continue
+
+            if avg_score < 0.7:
                 continue
 
             candidates.append(
@@ -821,13 +848,20 @@ class PrivacyReasoningEngine:
 
             if not decision:
                 return None
+            
+            height, width = frame_bgr.shape[:2]
+            
+            box_w = group.x2 - group.x1
+            box_h = group.y2 - group.y1
+            margin_x = int(box_w * self.crop_margin_ratio)
+            margin_y = int(box_h * self.crop_margin_ratio)
 
             det = VerifiedDetection(
                 frame_index=frame_index,
-                x1=group.x1,
-                y1=group.y1,
-                x2=group.x2,
-                y2=group.y2,
+                x1=max(0, group.x1 - margin_x),
+                y1=max(0, group.y1 - margin_y),
+                x2=min(width, group.x2 + margin_x),
+                y2=min(height, group.y2 + margin_y),
                 label=normalized_label,
                 detector_phrase="grouped text object",
                 detector_score=float(group.avg_score),
@@ -1174,7 +1208,7 @@ class PrivacyReasoningEngine:
             # 화면 너무 큰 박스 제거
             bw = box1[2] - box1[0]
             bh = box1[3] - box1[1]
-            if bw * bh > 300000:
+            if bw * bh > 500000:
                 used.add(i)
                 continue
             best_start = t1.start_frame
