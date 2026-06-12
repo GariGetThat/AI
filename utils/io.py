@@ -7,6 +7,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+import cv2
+import numpy as np
+
 
 def save_json(data: Any, path: str | Path, indent: int = 2) -> None:
     path = Path(path)
@@ -19,3 +22,17 @@ def save_json(data: Any, path: str | Path, indent: int = 2) -> None:
 def load_json(path: str | Path) -> Any:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def read_image(path: str | Path) -> np.ndarray | None:
+    path = Path(path)
+
+    if not path.exists():
+        return None
+
+    data = np.fromfile(str(path), dtype=np.uint8)
+
+    if data.size == 0:
+        return None
+
+    return cv2.imdecode(data, cv2.IMREAD_COLOR)

@@ -109,14 +109,66 @@ def format_person_display_name(person_id: str) -> str:
 
 
 def format_face_target_display_name(target_id: str) -> str:
-    if target_id.startswith("person_"):
-        try:
-            number = target_id.split("_")[1].lstrip("0")
-            return f"인물 {number}"
-        except Exception:
-            pass
+    try:
+        parts = target_id.split("_")
 
-    return target_id
+        if len(parts) >= 2 and parts[0] == "person":
+            number = parts[1].lstrip("0")
+
+            if number == "":
+                number = "0"
+
+            return f"인물 {number}"
+
+    except Exception:
+        pass
+
+    return "인물"
+
+def extract_person_id_from_target_id(target_id: str) -> str | None:
+    parts = target_id.split("_")
+
+    if len(parts) >= 2 and parts[0] == "person":
+        return f"{parts[0]}_{parts[1]}"
+
+    return None
+
+
+def render_face_target_receipt_item(
+    display_name: str,
+    image_path: Path | None,
+    meta: str,
+) -> None:
+    with st.container(border=True):
+        col_img, col_text = st.columns([0.28, 0.72], gap="small")
+
+        with col_img:
+            if image_path and image_path.exists():
+                st.image(
+                    str(image_path),
+                    use_container_width=True,
+                )
+            else:
+                st.markdown(
+                    """
+                    <div style="
+                        width:54px;
+                        height:54px;
+                        border-radius:8px;
+                        background:#EBEBF0;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:22px;
+                    ">👤</div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+        with col_text:
+            st.markdown(f"**{display_name}**")
+            st.caption("얼굴")
+            st.caption(meta)
 
 
 # ---------------------------------------------------------------------------
@@ -606,9 +658,24 @@ def person_select_page() -> None:
 
         for col, person in zip(cols, row_people):
             with col:
-                selected = person["person_id"] in st.session_state.exclude_person_ids
-
                 with st.container(border=True):
+                    selected = person["person_id"] in st.session_state.exclude_person_ids
+
+                    checked = st.checkbox(
+                        "선명하게 유지",
+                        value=selected,
+                        key=f"keep_{person['person_id']}",
+                    )
+
+                    if checked != selected:
+                        if checked:
+                            st.session_state.exclude_person_ids.append(person["person_id"])
+                        else:
+                            st.session_state.exclude_person_ids.remove(person["person_id"])
+
+                        invalidate_after_person_selection_change()
+                        st.rerun()
+
                     image_path = person["image_path"]
 
                     if image_path and image_path.exists():
@@ -637,29 +704,10 @@ def person_select_page() -> None:
                     st.markdown(f"**{person['name']}**")
                     st.caption(person["duration"])
 
-                    if selected:
-                        if st.button(
-                            "선명 유지 해제",
-                            key=f"unselect_{person['person_id']}",
-                            use_container_width=True,
-                        ):
-                            st.session_state.exclude_person_ids.remove(person["person_id"])
-                            invalidate_after_person_selection_change()
-                            st.rerun()
-
+                    if checked:
                         st.caption("✓ 선명하게 유지됨")
                     else:
-                        if st.button(
-                            "선명하게 유지",
-                            key=f"select_{person['person_id']}",
-                            use_container_width=True,
-                        ):
-                            st.session_state.exclude_person_ids.append(person["person_id"])
-                            invalidate_after_person_selection_change()
-                            st.rerun()
-
                         st.caption("가려질 예정")
-
     st.markdown("<br>", unsafe_allow_html=True)
 
     exclude_person_ids = st.session_state.get("exclude_person_ids", [])
@@ -749,6 +797,12 @@ def merged_result_page() -> None:
     object_targets = [t for t in targets if t.get("type") != "face"]
     keep_ids = st.session_state.get("exclude_person_ids", [])
 
+    person_db = load_person_db()
+    person_image_map = {}
+
+    for person_id, person in person_db.items():
+        person_image_map[person_id] = resolve_person_image_path(person)
+
     validation_result = validate_keep_people_removed_from_targets(
         keep_person_ids=set(keep_ids),
         targets=targets,
@@ -787,12 +841,18 @@ def merged_result_page() -> None:
         if face_targets:
             for target in face_targets:
                 target_id = target.get("id", "unknown")
-                display_name = format_face_target_display_name(target_id)
+                person_id = extract_person_id_from_target_id(target_id)
 
-                target_item(
-                    display_name,
-                    "얼굴",
-                    "blue",
+                if person_id:
+                    display_name = format_person_display_name(person_id)
+                    image_path = person_image_map.get(person_id)
+                else:
+                    display_name = format_face_target_display_name(target_id)
+                    image_path = None
+
+                render_face_target_receipt_item(
+                    display_name=display_name,
+                    image_path=image_path,
                     meta="선명 유지 대상에서 제외된 얼굴",
                 )
         else:

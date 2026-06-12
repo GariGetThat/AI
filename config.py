@@ -98,7 +98,7 @@ MIN_TRACK_FRAMES = 20
 # DBSCAN
 # =========================================================
 
-DBSCAN_EPS = 0.55
+DBSCAN_EPS = 0.60
 DBSCAN_MIN_SAMPLES = 1
 
 # =========================================================
@@ -114,6 +114,13 @@ TOP_N = 2
 REPR_CROP_INTERVAL = 30
 REPR_CROP_MIN_SIZE = 40
 REPR_CROP_QUALITY = 90
+
+# =========================================================
+# Track Embedding
+# =========================================================
+
+TRACK_EMBEDDING_TOP_K = 5
+TRACK_MIN_EMBEDDINGS = 1
 
 # =========================================================
 # Person Post Processing
