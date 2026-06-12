@@ -14,7 +14,12 @@ import config
 from db.schema import TrackDBEntry
 from models.face_detector import BaseFaceDetector, build_detector
 from models.face_tracker import BaseFaceTracker, build_tracker
-from utils.crop import crop_face_by_kps, save_crop, select_best_crop
+from utils.crop import (
+    crop_aligned_face_by_kps,
+    crop_face_by_kps,
+    save_crop,
+    select_best_crop,
+)
 from utils.io import save_json
 from utils.video import get_video_meta, iter_frames
 
@@ -228,12 +233,19 @@ def _collect_crop_candidate(
     tid = tr.track_id
     bbox = tuple(int(v) for v in tr.bbox)
 
-    crop = crop_face_by_kps(
+    crop = crop_aligned_face_by_kps(
         frame=frame,
         kps=tr.kps,
-        bbox=bbox,
-        min_size=min_crop_size,
+        image_size=config.RECOGNIZER_INPUT_SIZE[0],
     )
+
+    if crop is None:
+        crop = crop_face_by_kps(
+            frame=frame,
+            kps=tr.kps,
+            bbox=bbox,
+            min_size=min_crop_size,
+        )
 
     if crop is None:
         return

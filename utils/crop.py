@@ -88,6 +88,42 @@ def crop_face_by_kps(
 
     return crop
 
+def crop_aligned_face_by_kps(
+    frame: np.ndarray,
+    kps: list | np.ndarray | None,
+    image_size: int = 112,
+) -> np.ndarray | None:
+    """
+    InsightFace landmark 기반 aligned face crop 생성.
+
+    ArcFace recognition model은 단순 bbox crop보다
+    정렬된 112x112 얼굴 입력에서 더 안정적인 embedding을 만든다.
+    """
+
+    if kps is None:
+        return None
+
+    try:
+        from insightface.utils import face_align
+
+        pts = np.asarray(kps, dtype=np.float32)
+
+        if pts.shape != (5, 2):
+            return None
+
+        aligned = face_align.norm_crop(
+            frame,
+            landmark=pts,
+            image_size=image_size,
+        )
+
+        if aligned is None or aligned.size == 0:
+            return None
+
+        return aligned
+
+    except Exception:
+        return None
 
 def save_crop(
     crop: np.ndarray,
