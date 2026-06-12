@@ -100,9 +100,10 @@ def resolve_person_image_path(person: dict) -> Path | None:
 
 def format_person_display_name(person_id: str) -> str:
     if person_id.startswith("person_"):
-        number = person_id.replace("person_", "").lstrip("0")
+        raw_number = person_id.replace("person_", "")
 
-        if number.isdigit():
+        if raw_number.isdigit():
+            number = int(raw_number) + 1
             return f"인물 {number}"
 
     return person_id
@@ -794,6 +795,14 @@ def merged_result_page() -> None:
         targets = st.session_state.get("merged_targets") or load_sam2_targets()
 
     face_targets = [t for t in targets if t.get("type") == "face"]
+    face_person_ids = []
+
+    for target in face_targets:
+        target_id = target.get("id", "")
+        person_id = extract_person_id_from_target_id(target_id)
+
+        if person_id and person_id not in face_person_ids:
+            face_person_ids.append(person_id)
     object_targets = [t for t in targets if t.get("type") != "face"]
     keep_ids = st.session_state.get("exclude_person_ids", [])
 
@@ -825,7 +834,7 @@ def merged_result_page() -> None:
             <div style="font-size:15px;font-weight:700;margin-bottom:10px;">🧾 적용 내용 요약</div>
             <div style="height:1px;background:#D1D1D6;margin-bottom:12px;"></div>
             <div class="small">선명하게 유지할 인물 <b style="float:right;color:#26262B;">{len(keep_ids)}명</b></div>
-            <div class="small" style="margin-top:12px;">가려질 얼굴 <b style="float:right;color:#26262B;">{len(face_targets)}개</b></div>
+            <div class="small" style="margin-top:12px;">가려질 얼굴 <b style="float:right;color:#26262B;">{len(face_person_ids)}명</b></div>
             <div class="small" style="margin-top:12px;">가려질 개인정보 항목 <b style="float:right;color:#26262B;">{len(object_targets)}개</b></div>
         </div>
         """,
@@ -838,22 +847,15 @@ def merged_result_page() -> None:
 
     with left:
         st.markdown("### 👤 가려질 얼굴")
-        if face_targets:
-            for target in face_targets:
-                target_id = target.get("id", "unknown")
-                person_id = extract_person_id_from_target_id(target_id)
-
-                if person_id:
-                    display_name = format_person_display_name(person_id)
-                    image_path = person_image_map.get(person_id)
-                else:
-                    display_name = format_face_target_display_name(target_id)
-                    image_path = None
+        if face_person_ids:
+            for person_id in face_person_ids:
+                display_name = format_person_display_name(person_id)
+                image_path = person_image_map.get(person_id)
 
                 render_face_target_receipt_item(
                     display_name=display_name,
                     image_path=image_path,
-                    meta="선명 유지 대상에서 제외된 얼굴",
+                    meta="선명 유지 대상에서 제외된 인물",
                 )
         else:
             st.info("가려질 얼굴이 없습니다.")
