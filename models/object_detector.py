@@ -243,28 +243,56 @@ class PrivacyReasoningEngine:
     # -------------------------------------------------------------------------
     # Prompt helpers
     # -------------------------------------------------------------------------
+    # def build_privacy_reason_prompt(
+    #     self,
+    #     user_prompt: str,
+    #     visible_text: str,
+    # ) -> str:
+    #     return (
+    #     "You are deciding whether a text group and its surrounding object should be privacy-blurred.\n"
+    #     f"User request: {user_prompt}\n"
+    #     f"Visible text from the grouped region:\n{visible_text}\n"
+    #     "Decide based on the visible text and obvious visible context only.\n"
+    #     "If this grouped region likely belongs to a privacy-sensitive object such as a receipt, waybill(delivery label with name/address/phone number), address label, card, ID document, license plate, or other personal text-bearing object, answer yes. Road signs, subtitles, and brand logos are NOT privacy-sensitive.\n"
+    #     "Short noisy fragments such as a single digit or random short token alone are not enough unless the overall grouped region strongly suggests a sensitive object.\n"
+    #     "If any part of the grouped region likely contains privacy-sensitive information, treat the whole grouped object as blur-worthy.\n"
+    #     "You MUST return exactly three lines in this order, do NOT skip or merge any line:\n"
+    #     "Decision: yes or no\n"
+    #     "Label: receipt | waybill | credit card | driver's license | license plate | road sign | address document | other private text | other\n"
+    #     "Reason: <one short sentence>\n"
+    #     "Example output:\n"
+    #     "Decision: yes\n"
+    #     "Label: waybill\n"
+    #     "Reason: Contains name, address and phone number typical of a delivery label.\n"
+    # )
+
     def build_privacy_reason_prompt(
         self,
         user_prompt: str,
         visible_text: str,
     ) -> str:
         return (
-        "You are deciding whether a text group and its surrounding object should be privacy-blurred.\n"
-        f"User request: {user_prompt}\n"
-        f"Visible text from the grouped region:\n{visible_text}\n"
-        "Decide based on the visible text and obvious visible context only.\n"
-        "If this grouped region likely belongs to a privacy-sensitive object such as a receipt, waybill(delivery label with name/address/phone number), address label, card, ID document, license plate, or other personal text-bearing object, answer yes. Road signs, subtitles, and brand logos are NOT privacy-sensitive.\n"
-        "Short noisy fragments such as a single digit or random short token alone are not enough unless the overall grouped region strongly suggests a sensitive object.\n"
-        "If any part of the grouped region likely contains privacy-sensitive information, treat the whole grouped object as blur-worthy.\n"
-        "You MUST return exactly three lines in this order, do NOT skip or merge any line:\n"
-        "Decision: yes or no\n"
-        "Label: receipt | waybill | credit card | driver's license | license plate | road sign | address document | other private text | other\n"
-        "Reason: <one short sentence>\n"
-        "Example output:\n"
-        "Decision: yes\n"
-        "Label: waybill\n"
-        "Reason: Contains name, address and phone number typical of a delivery label.\n"
-    )
+            "You are a privacy protection AI. Decide if this region must be blurred.\n"
+            f"User request: {user_prompt}\n"
+            f"Visible text: {visible_text}\n\n"
+            "BLUR if the region contains:\n"
+            "- Personal ID numbers, resident registration numbers\n"
+            "- Credit/debit card numbers or cardholder names\n"
+            "- Full name + address + phone number combination (waybill/delivery label)\n"
+            "- Driver's license or ID document with personal info\n"
+            "- License plate numbers\n"
+            "- Bank account numbers\n\n"
+            "DO NOT BLUR:\n"
+            "- Product labels, food packaging, brand logos\n"
+            "- Road signs, store signs, subtitles\n"
+            "- Generic printed text without personal info\n"
+            "- Single words or short fragments without context\n\n"
+            "You MUST return exactly three lines:\n"
+            "Decision: yes or no\n"
+            "Label: receipt | waybill | credit card | driver's license | "
+            "license plate | road sign | address document | other private text | other\n"
+            "Reason: <one short sentence>\n"
+        )
 
     # -------------------------------------------------------------------------
     # Qwen helpers
@@ -328,7 +356,7 @@ class PrivacyReasoningEngine:
         self,
         video_path: str,
         user_prompt: str = "내 프라이버시가 유출될 만한 것들을 가려줘.",
-        sample_fps: float = 1.0,
+        sample_fps: float = 4.0,
     ) -> List[TrackState]:
         print("[Start] process_video 시작", flush=True)
         print(f"[Start] video_path = {video_path}", flush=True)
@@ -674,7 +702,7 @@ class PrivacyReasoningEngine:
                     max_group_area = frame_w * frame_h * 0.15
                     if (gx2 - gx1) * (gy2 - gy1) > max_group_area:
                         break
-                    if (close_x and close_y) or overlaps or within_band:
+                    if (close_x and close_y) or overlaps:
                         current_group.append(it)
                         used[j] = True
                         changed = True
@@ -956,12 +984,41 @@ class PrivacyReasoningEngine:
             for track_id in track_ids:
                 track = self.active_tracks[track_id]
                 # 라벨이 달라도 위치(IoU)가 겹치면 같은 객체로 인정
-                # if track.label != det.label:
-                #    continue
+                if track.label != det.label:
+                   continue
 
                 iou = self.compute_iou(track.last_box, det.box)
-                if iou >= self.track_iou_threshold:
-                    candidate_pairs.append((iou, det_idx, track_id))
+
+                # IoU가 낮아도 카메라 이동/각도 변화로 같은 객체일 수 있으므로
+                # 중심점 거리와 시간 간격을 함께 사용해 track을 연결한다.
+                tx1, ty1, tx2, ty2 = track.last_box
+                dx1, dy1, dx2, dy2 = det.box
+
+                track_cx = (tx1 + tx2) / 2.0
+                track_cy = (ty1 + ty2) / 2.0
+                det_cx = (dx1 + dx2) / 2.0
+                det_cy = (dy1 + dy2) / 2.0
+
+                center_dist = ((track_cx - det_cx) ** 2 + (track_cy - det_cy) ** 2) ** 0.5
+
+                track_w = max(1, tx2 - tx1)
+                track_h = max(1, ty2 - ty1)
+                det_w = max(1, dx2 - dx1)
+                det_h = max(1, dy2 - dy1)
+
+                avg_diag = (
+                    ((track_w ** 2 + track_h ** 2) ** 0.5)
+                    + ((det_w ** 2 + det_h ** 2) ** 0.5)
+                ) / 2.0
+
+                center_threshold = max(120.0, avg_diag * 0.8)
+
+                is_same_by_iou = iou >= self.track_iou_threshold
+                is_same_by_center = center_dist <= center_threshold
+
+                if is_same_by_iou or is_same_by_center:
+                    score = iou + max(0.0, 1.0 - center_dist / max(1.0, center_threshold))
+                    candidate_pairs.append((score, det_idx, track_id))
 
         candidate_pairs.sort(key=lambda x: x[0], reverse=True)
 
@@ -1139,9 +1196,17 @@ class PrivacyReasoningEngine:
         print(f"[Debug] 중복 제거 후 트랙 수: {len(tracks)}", flush=True)
 
         payload: List[Dict] = []
+        OBJECT_PRE_ROLL_FRAMES = 8  # 24fps 기준 약 0.33초
+        OBJECT_MIN_DURATION_FRAMES = 16     # 단발 탐지도 최소 약 0.67초 유지
+
         for track in tracks:
             if track.start_frame == track.end_frame:
-                track.end_frame = track.start_frame + 10
+                print(f"[Filter] {track.object_id} start==end({track.start_frame}), 제외", flush=True)
+                continue
+            start_frame = max(0, int(track.start_frame) - OBJECT_PRE_ROLL_FRAMES)
+            end_frame = max(int(track.end_frame), start_frame + OBJECT_MIN_DURATION_FRAMES)
+
+
             payload.append(
                 {
                     "id": track.object_id,
