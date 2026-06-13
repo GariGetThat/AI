@@ -215,10 +215,12 @@ class PrivacyReasoningEngine:
                 self.qwen_model.generation_config.do_sample = False
 
         self.text_detector = PaddleOCR(
-            lang=text_detector_lang,
+            text_detection_model_name="PP-OCRv5_server_det",
+            text_recognition_model_name="PP-OCRv5_server_rec",
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
-            use_textline_orientation=True,
+            use_textline_orientation=False,
+            lang="korean"
         )
         self._log("PaddleOCR detector+recognizer 로딩 완료")
 
@@ -551,7 +553,7 @@ class PrivacyReasoningEngine:
             if self.group_text_is_too_weak(merged_text, len(group_items)):
                 continue
 
-            if avg_score < 0.7:
+            if avg_score < 0.4:
                 continue
 
             candidates.append(
@@ -1230,7 +1232,7 @@ class PrivacyReasoningEngine:
         print(f"[Debug] 중복 제거 후 트랙 수: {len(tracks)}", flush=True)
 
         payload: List[Dict] = []
-        OBJECT_PRE_ROLL_FRAMES = 8  # 24fps 기준 약 0.33초
+        OBJECT_PRE_ROLL_FRAMES = 24  # 24fps 기준 약 0.33초
         OBJECT_MIN_DURATION_FRAMES = 16     # 단발 탐지도 최소 약 0.67초 유지
 
         for track in tracks:

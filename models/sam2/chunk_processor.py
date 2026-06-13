@@ -137,8 +137,8 @@ class ChunkProcessor:
                     obj_id = target["id"]
 
                     # end_frame 지난 객체 스킵
-                    if target["end_frame"] < chunk_start:
-                        continue
+                    # if target["end_frame"] < chunk_start:
+                    #     continue
                     # 아직 start_frame 안 된 객체 스킵
                     if target["start_frame"] > chunk_end:
                         continue
@@ -215,8 +215,8 @@ class ChunkProcessor:
                         if abs_frame < target["start_frame"]:
                             continue
                         # end_frame 지난 객체는 box 저장 안 함
-                        if abs_frame > target["end_frame"]:
-                            continue
+                        # if abs_frame > target["end_frame"]:
+                        #     continue
                          
                         box = self.mask_to_box(mask)
                         if box is not None:
