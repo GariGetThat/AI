@@ -219,7 +219,8 @@ SAM2 세그멘테이션 마스크 전파 (propagate_in_video)
 
 - **블러 처리 (PASS5)** : SAM2 마스크를 기반으로 GaussianBlur를 적용합니다. 얼굴은 마스크 영역 전체에 블러를 적용하고, 객체는 마스크에서 추출한 Bounding Box 영역에 블러를 적용합니다.
 ---
-<img width="1170" height="929" alt="image" src="https://github.com/user-attachments/assets/beb43923-1ea6-4b74-8d77-074c427dfd85" />
+<img width="917" height="737" alt="image" src="https://github.com/user-attachments/assets/b0b5e6a9-0e69-4477-8183-be803fcb2811" />
+
 
 
 # 프로젝트 구조
