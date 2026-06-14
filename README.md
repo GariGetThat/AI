@@ -43,7 +43,7 @@ SAM2에게 전달할 얼굴 JSON 생성 (face_sam2_input.json 생성)
 PASS3 객체 및 텍스트 탐지 + SAM2에게 전달할 Object JSON 생성 (PaddleOCR + Qwen2-7B-VL)
       │
       ▼
-PASS4 탐재 대상 통합 (얼굴 + 객체)
+PASS4 탐지 대상 통합 (얼굴 + 객체)
       │
       ▼
 sam2_targets.json 생성
