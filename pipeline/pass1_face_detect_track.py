@@ -14,7 +14,12 @@ import config
 from db.schema import TrackDBEntry
 from models.face_detector import BaseFaceDetector, build_detector
 from models.face_tracker import BaseFaceTracker, build_tracker
-from utils.crop import crop_face_by_kps, save_crop, select_best_crop
+from utils.crop import (
+    crop_aligned_face_by_kps,
+    crop_face_by_kps,
+    save_crop,
+    select_best_crop,
+)
 from utils.io import save_json
 from utils.video import get_video_meta, iter_frames
 
@@ -39,6 +44,8 @@ def run_pass1(
     output_path = Path(output_path)
     crops_dir.mkdir(parents=True, exist_ok=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    prev_frame = None
+    track_id_offset = 0
 
     if detector is None:
         detector = build_detector(
@@ -75,6 +82,38 @@ def run_pass1(
     processed_frames = 0
 
     for frame_idx, frame in iter_frames(video_path):
+
+        # ------------------------------------------------------------------
+        # Scene Change Detection
+        # ------------------------------------------------------------------
+
+        if prev_frame is not None:
+
+            prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+            curr_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            diff = cv2.absdiff(prev_gray, curr_gray)
+
+            change_ratio = np.mean(diff)
+
+            if change_ratio > 40:
+                logger.info(
+                    "Scene change detected | frame=%d | diff=%.2f",
+                    frame_idx,
+                    change_ratio,
+                )
+
+                current_max_tid = max(track_db.keys(), default=0)
+                track_id_offset = current_max_tid
+
+                tracker = build_tracker(
+                    track_thresh=config.BYTETRACK_TRACK_THRESH,
+                    high_thresh=config.BYTETRACK_HIGH_THRESH,
+                    match_thresh=config.BYTETRACK_MATCH_THRESH,
+                    max_time_lost=config.BYTETRACK_MAX_TIME_LOST,
+                )
+
+        prev_frame = frame.copy()
         frame_start = time.perf_counter()
 
         # 1. Face detection
@@ -87,8 +126,12 @@ def run_pass1(
 
         # 2. Tracking
         tracks = tracker.update(detections, frame_idx)
-        t2 = time.perf_counter()
 
+        if track_id_offset > 0:
+            for tr in tracks:
+                tr.track_id += track_id_offset
+        t2 = time.perf_counter()
+        
         # 3. Track DB update
         for tr in tracks:
             _update_track_db(track_db, tr)
@@ -228,12 +271,19 @@ def _collect_crop_candidate(
     tid = tr.track_id
     bbox = tuple(int(v) for v in tr.bbox)
 
-    crop = crop_face_by_kps(
+    crop = crop_aligned_face_by_kps(
         frame=frame,
         kps=tr.kps,
-        bbox=bbox,
-        min_size=min_crop_size,
+        image_size=config.RECOGNIZER_INPUT_SIZE[0],
     )
+
+    if crop is None:
+        crop = crop_face_by_kps(
+            frame=frame,
+            kps=tr.kps,
+            bbox=bbox,
+            min_size=min_crop_size,
+        )
 
     if crop is None:
         return

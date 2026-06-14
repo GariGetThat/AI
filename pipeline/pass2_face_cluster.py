@@ -6,7 +6,7 @@ import logging
 import shutil
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
 
 import cv2
 import numpy as np
@@ -15,7 +15,7 @@ from sklearn.cluster import DBSCAN
 import config
 from db.schema import PersonDBEntry, TrackDBEntry
 from models.face_recognizer import build_recognizer
-from utils.io import load_json, save_json
+from utils.io import load_json, save_json, read_image
 
 logger = logging.getLogger(__name__)
 
@@ -57,35 +57,15 @@ def run_pass2(
     valid_tracks: List[TrackDBEntry] = []
 
     for entry in track_db.values():
-        if entry.repr_crop_path is None:
-            logger.warning(
-                "track %d: repr_crop_path 없음. embedding 추출 제외",
-                entry.track_id,
-            )
-            continue
-
-        crop_path = Path(entry.repr_crop_path)
-
-        if not crop_path.exists():
-            logger.warning(
-                "track %d: crop 파일 없음: %s",
-                entry.track_id,
-                crop_path,
-            )
-            continue
-
-        crop = cv2.imread(str(crop_path))
-
-        if crop is None:
-            logger.warning(
-                "track %d: crop 읽기 실패: %s",
-                entry.track_id,
-                crop_path,
-            )
-            continue
-
         t0 = time.perf_counter()
-        embedding = recognizer.get_embedding(crop)
+
+        embedding = _extract_track_embedding(
+            entry=entry,
+            recognizer=recognizer,
+            top_k=config.TRACK_EMBEDDING_TOP_K,
+            min_embeddings=config.TRACK_MIN_EMBEDDINGS,
+        )
+
         embedding_extract_time += time.perf_counter() - t0
 
         if embedding is None:
@@ -321,6 +301,132 @@ def _merge_short_persons(
             long_persons[short_pid] = short_person
 
     return long_persons
+
+def _extract_track_embedding(
+    entry: TrackDBEntry,
+    recognizer: Any,
+    top_k: int,
+    min_embeddings: int,
+) -> List[float] | None:
+    """
+    track 하나에 대한 대표 embedding 생성.
+
+    현재 단계:
+    - 여러 crop 경로가 있으면 top_k개 평균
+    - 없으면 기존 repr_crop_path 1개 사용
+
+    이후 확장:
+    - frame + kps가 TrackDB에 저장되면 recognizer.get_embedding(frame=..., kps=...)로 교체 가능
+    """
+
+    crop_paths = _collect_crop_paths(entry)
+
+    if not crop_paths:
+        logger.warning(
+            "track %d: crop path 없음. embedding 추출 제외",
+            entry.track_id,
+        )
+        return None
+
+    embeddings: List[List[float]] = []
+
+    for crop_path in crop_paths[:top_k]:
+        crop = read_image(crop_path)
+
+        if crop is None:
+            logger.warning(
+                "track %d: crop 읽기 실패: %s",
+                entry.track_id,
+                crop_path,
+            )
+            continue
+
+        emb = recognizer.get_embedding(crop=crop)
+
+        if emb is None:
+            continue
+
+        embeddings.append(emb)
+
+    if len(embeddings) < min_embeddings:
+        logger.warning(
+            "track %d: embedding 개수 부족 | got=%d | required=%d",
+            entry.track_id,
+            len(embeddings),
+            min_embeddings,
+        )
+        return None
+
+    return _average_embedding_list(embeddings)
+
+
+def _collect_crop_paths(entry: TrackDBEntry) -> List[Path]:
+    """
+    TrackDBEntry에서 사용할 crop path 목록 수집.
+
+    현재 schema에서는 repr_crop_path만 있을 가능성이 크다.
+    나중에 crop_paths / repr_crop_paths 같은 필드를 추가해도 바로 대응되게 작성.
+    """
+
+    paths: List[Path] = []
+
+    for attr_name in ("crop_paths", "repr_crop_paths"):
+        value = getattr(entry, attr_name, None)
+
+        if not value:
+            continue
+
+        for p in value:
+            path = Path(p)
+
+            if path.exists():
+                paths.append(path)
+
+    if entry.repr_crop_path is not None:
+        path = Path(entry.repr_crop_path)
+
+        if path.exists():
+            paths.append(path)
+        else:
+            logger.warning(
+                "track %d: repr_crop_path 파일 없음: %s",
+                entry.track_id,
+                path,
+            )
+
+    # 중복 제거
+    unique_paths = []
+    seen = set()
+
+    for path in paths:
+        key = str(path)
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        unique_paths.append(path)
+
+    return unique_paths
+
+
+def _average_embedding_list(
+    embeddings: List[List[float]],
+) -> List[float] | None:
+    """
+    여러 embedding을 평균낸 뒤 다시 L2 normalize.
+    """
+
+    if not embeddings:
+        return None
+
+    arr = np.asarray(embeddings, dtype=np.float32)
+    arr = _l2_normalize(arr)
+
+    mean_emb = np.mean(arr, axis=0, keepdims=True)
+    mean_emb = _l2_normalize(mean_emb)
+
+    return mean_emb.reshape(-1).tolist()
 
 
 def _mean_embedding(

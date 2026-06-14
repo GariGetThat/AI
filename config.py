@@ -68,7 +68,7 @@ INSIGHTFACE_MODEL_PACK = "buffalo_l"
 INSIGHTFACE_ALLOWED_MODULES = ["detection"]
 
 INSIGHTFACE_INPUT_SIZE = (640, 640)
-INSIGHTFACE_CONF_THRESH = 0.6
+INSIGHTFACE_CONF_THRESH = 0.45
 
 RECOGNIZER_MODEL_NAME = "w600k_r50.onnx"
 RECOGNIZER_INPUT_SIZE = (112, 112)
@@ -86,19 +86,19 @@ else:
 BYTETRACK_TRACK_THRESH = 0.5
 BYTETRACK_HIGH_THRESH = 0.6
 BYTETRACK_MATCH_THRESH = 0.7
-BYTETRACK_MAX_TIME_LOST = 90
+BYTETRACK_MAX_TIME_LOST = 30
 
 # =========================================================
 # Track Filtering
 # =========================================================
 
-MIN_TRACK_FRAMES = 20
+MIN_TRACK_FRAMES = 1
 
 # =========================================================
 # DBSCAN
 # =========================================================
 
-DBSCAN_EPS = 0.55
+DBSCAN_EPS = 0.60
 DBSCAN_MIN_SAMPLES = 1
 
 # =========================================================
@@ -114,6 +114,13 @@ TOP_N = 2
 REPR_CROP_INTERVAL = 30
 REPR_CROP_MIN_SIZE = 40
 REPR_CROP_QUALITY = 90
+
+# =========================================================
+# Track Embedding
+# =========================================================
+
+TRACK_EMBEDDING_TOP_K = 5
+TRACK_MIN_EMBEDDINGS = 1
 
 # =========================================================
 # Person Post Processing
@@ -132,12 +139,12 @@ PERSON_MERGE_SIM_THRESH = 0.65
 OBJECT_QWEN_MODEL_NAME = "Qwen/Qwen2-VL-7B-Instruct"
 OBJECT_DEFAULT_PROMPT = "내 프라이버시가 유출될 만한 것들을 가려줘."
 
-OBJECT_SAMPLE_FPS = 5.0
+OBJECT_SAMPLE_FPS = 10.0
 OBJECT_TEXT_DETECTOR_LANG = "korean"
 
 OBJECT_CROP_MARGIN_RATIO = 0.35
 OBJECT_MAX_NEW_TOKENS_REASON = 48
-OBJECT_TRACK_IOU_THRESHOLD = 0.50
+OBJECT_TRACK_IOU_THRESHOLD = 0.2
 
 OBJECT_MIN_TEXT_BOX_AREA = 16
 OBJECT_MAX_TEXT_BOX_AREA_RATIO = 0.75
@@ -148,8 +155,8 @@ OBJECT_MIN_TEXT_REGION_HEIGHT = 3
 OBJECT_MIN_REC_SCORE = 0.30
 
 OBJECT_MIN_GROUP_ITEMS = 1
-OBJECT_GROUP_X_GAP_RATIO = 0.8
-OBJECT_GROUP_Y_GAP_RATIO = 0.6
+OBJECT_GROUP_X_GAP_RATIO = 0.5
+OBJECT_GROUP_Y_GAP_RATIO = 0.3
 
 # OBJECT_GROUP_X_GAP_RATIO = 0.6
 # OBJECT_GROUP_Y_GAP_RATIO = 0.5
@@ -163,7 +170,7 @@ OBJECT_MIN_QWEN_CROP_SIZE = 56
 SAM2_DEVICE = DEVICE
 SAM2_FPS = 25
 SAM2_CHUNK_SECONDS = 15
-BLUR_STRENGTH = 31
+BLUR_STRENGTH = 51
 
 # =========================================================
 # Debug / Preview
