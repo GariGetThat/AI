@@ -428,3 +428,15 @@ python main.py \
 --mode debug-boxes \
 --video inputs/demo.mp4
 ```
+---
+### 개발 환경
+- macOS / Apple Silicon (M4 Max)
+- Ubuntu / NVIDIA GPU
+
+### 사용한 오픈소스 
+본 프로젝트에서는 비디오 개인정보 비식별화 파이프라인에 맞게 일부 코드를 수정하여 사용합니다. 
+
+>Meta AI Segment Anything Model 2
+
+https://github.com/facebookresearch/sam2
+
