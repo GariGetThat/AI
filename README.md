@@ -113,11 +113,11 @@ SAM2 입력 생성
 | 랜드마크    | 2D106 / 3D68         |
 | 속성 분석   | 성별 / 나이         |
 
-- **얼굴 탐지 (PASS1)** : InsightFace buffalo_l 모델 팩을 사용하여 영상의 각 프레임에서 얼굴 위치(Bounding Box), 탐지 신뢰도(Confidence Score), 얼굴 랜드마크(Keypoints)를 추출합니다. 
+- **얼굴 탐지 (PASS1)** : InsightFace buffalo_l 모델 팩 내 탐지 모델(RetinaFace-10GF)을 사용하여 영상의 각 프레임에서 얼굴 위치(Bounding Box), 탐지 신뢰도(Confidence Score), 얼굴 랜드마크(Keypoints)를 추출합니다.
 
 - **얼굴 추적(PASS1)** : ByteTrack 알고리즘을 사용하여 프레임 간 얼굴을 연결하고 동일 인물에게 동일한 Track ID를 부여합니다. 본 프로젝트에서 ByteTrack은 "같은 얼굴이 시간적으로 이어져 있는가"를 판단하는 역할을 합니다. 
 
-- **동일 인물 클러스터링 (PASS2)** : buffalo_l 내부 Recognition Model(ResNet50@WebFace600K, ArcFace 손실함수)을 사용하여 각 Track의 대표 얼굴 이미지에서 얼굴 특징 벡터(Embedding)를 추출합니다. 
+- **동일 인물 클러스터링 (PASS2)** : buffalo_l 모델 팩 내 인식 모델(ResNet50@WebFace600K, ArcFace 손실함수)을 사용하여 각 Track의 대표 얼굴 이미지에서 얼굴 특징 벡터(Embedding)를 추출합니다.
 
 - **사용자 인물 선택** : 클러스터링 결과를 바탕으로 생성된 Person DB를 UI에 제공하여 사용자가 선명하게 유지할 인물을 직접 선택할 수 있도록 합니다. 선택된 인물은 블러 대상에서 제외되고, 선택되지 않은 인물만 SAM2 블러 처리 대상에 포함됩니다. 
 
