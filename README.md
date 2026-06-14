@@ -20,6 +20,9 @@ Gari-Get-That은 영상 내 개인정보 노출 문제를 해결하기 위한 �
 
 ---
 
+## 데모 영상 
+▶ [유튜브 재생목록 바로가기](https://youtube.com/playlist?list=PL9RbTtr2DyLTOe75PRk7gjuqmXS-nr1Mh&si=9GgysHCFFZTvBeVD)
+
 ## 시스템 구조
 
 ```text
