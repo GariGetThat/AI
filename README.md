@@ -13,7 +13,6 @@
 <img width="1027" height="902" alt="image" src="https://github.com/user-attachments/assets/b68bed8d-926e-4098-b153-3ae200ae4ded" />
 Gari-Get-That은 영상 내 개인정보 노출 문제를 해결하기 위한 자동 비식별화 시스템입니다. 사용자가 영상을 입력하면 다음 정보를 자동으로 탐지합니다. 
 * Face (얼굴)
-* Text (개인정보 포함 텍스트)
 * Object (개인정보 노출 가능 객체)
 
 탐지된 대상은 자동으로 통합되며, SAM2 기반 비디오 Segmentation과 블러 처리를 통해 개인정보를 보호합니다. 
